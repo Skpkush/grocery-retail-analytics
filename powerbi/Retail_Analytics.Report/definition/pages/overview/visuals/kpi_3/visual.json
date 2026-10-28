@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "kpi_3",
   "position": {
     "x": 644,
     "y": 95,
     "z": 5000,
-    "width": 198,
     "height": 100,
+    "width": 198,
     "tabOrder": 5000
   },
   "visual": {
@@ -70,35 +70,26 @@
             }
           }
         }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Households'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "e361a24d27ee687c107b",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Households"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

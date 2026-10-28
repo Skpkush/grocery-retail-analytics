@@ -162,7 +162,12 @@ table Sales
 		isHidden
 		formatString: yyyy-mm-dd
 		lineageTag: 99329ead-5360-445f-8f7c-8d92c52c026f
+		summarizeBy: none
 		sourceColumn: business_date
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation SummarizationSetBy = Automatic
 
 	column household_id
 		dataType: string

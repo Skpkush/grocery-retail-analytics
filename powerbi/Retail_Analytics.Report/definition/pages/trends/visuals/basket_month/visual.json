@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "basket_month",
   "position": {
     "x": 20,
     "y": 415,
     "z": 2000,
-    "width": 620,
     "height": 285,
+    "width": 620,
     "tabOrder": 2000
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Date.month_name",
-              "nativeQueryRef": "month_name"
+              "nativeQueryRef": "month_name",
+              "active": true
             }
           ]
         },
@@ -65,8 +66,7 @@
             },
             "direction": "Ascending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
     "objects": {
@@ -94,33 +94,6 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Average basket value by month'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
                 }
               }
             }

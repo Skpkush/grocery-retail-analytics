@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "age",
   "position": {
     "x": 20,
     "y": 450,
     "z": 6000,
-    "width": 1240,
     "height": 250,
+    "width": 1240,
     "tabOrder": 6000
   },
   "visual": {
@@ -103,38 +103,8 @@
             },
             "direction": "Ascending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
-    },
-    "objects": {
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Age group detail (surveyed households)'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
-      ]
     },
     "drillFilterOtherVisuals": true
   },

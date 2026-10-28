@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "delta_3",
   "position": {
     "x": 644,
     "y": 205,
     "z": 11000,
-    "width": 198,
     "height": 80,
+    "width": 198,
     "tabOrder": 11000
   },
   "visual": {
@@ -70,35 +70,26 @@
             }
           }
         }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Discount rate vs Q3'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "ef548687156861c72425",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Discount Rate Change pts"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

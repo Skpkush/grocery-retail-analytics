@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "quarter_table",
   "position": {
     "x": 655,
     "y": 415,
     "z": 3000,
-    "width": 605,
     "height": 285,
+    "width": 605,
     "tabOrder": 3000
   },
   "visual": {
@@ -117,38 +117,8 @@
             },
             "direction": "Ascending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
-    },
-    "objects": {
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Quarter detail'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
-      ]
     },
     "drillFilterOtherVisuals": true
   }

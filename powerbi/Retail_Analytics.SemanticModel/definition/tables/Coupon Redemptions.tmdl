@@ -29,7 +29,12 @@ table 'Coupon Redemptions'
 		isHidden
 		formatString: yyyy-mm-dd
 		lineageTag: f2900470-fd0e-4af7-8809-df9eadea19e2
+		summarizeBy: none
 		sourceColumn: redemption_date
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation SummarizationSetBy = Automatic
 
 	partition 'Coupon Redemptions' = m
 		mode: import

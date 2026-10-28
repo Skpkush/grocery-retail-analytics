@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "weekly",
   "position": {
     "x": 20,
     "y": 70,
     "z": 1000,
-    "width": 1240,
     "height": 330,
+    "width": 1240,
     "tabOrder": 1000
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Date.retail_week",
-              "nativeQueryRef": "retail_week"
+              "nativeQueryRef": "retail_week",
+              "active": true
             }
           ]
         },
@@ -83,8 +84,7 @@
             },
             "direction": "Ascending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
     "objects": {
@@ -112,33 +112,6 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Net sales by retail week and 4-week rolling average'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
                 }
               }
             }

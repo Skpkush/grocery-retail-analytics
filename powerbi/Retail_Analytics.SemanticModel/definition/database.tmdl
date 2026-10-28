@@ -1,4 +1,4 @@
 /// Complete Journey 2017 star schema. Measures mirror src/retail/metrics.py.
-database Retail_Analytics
+database
 	compatibilityLevel: 1601
 

@@ -1,0 +1,100 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 627.8070956504871,
+            "y": -50
+          },
+          "nodeIndex": "Campaign Targets",
+          "nodeLineageTag": "4457a9c4-e767-4b7a-a301-1f19d1c39065",
+          "size": {
+            "height": 152,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 235.02618473179666
+          },
+          "nodeIndex": "Coupon Redemptions",
+          "nodeLineageTag": "a8a0fdac-5e38-4f75-9150-23c3f6f34bf5",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 515.40751729668159,
+            "y": 412.01128704827357
+          },
+          "nodeIndex": "Date",
+          "nodeLineageTag": "d2a2d401-0098-4813-b3e2-a71f8b9123c4",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 339.85410261523413,
+            "y": -49.303210789070931
+          },
+          "nodeIndex": "Household",
+          "nodeLineageTag": "3a51f200-f18d-48f0-8b6d-2d49494799c2",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1092.1146263953915,
+            "y": 270.27459528272294
+          },
+          "nodeIndex": "Product",
+          "nodeLineageTag": "e968aa1f-af3f-435e-9415-60747fd52ec3",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 805.28975538145721,
+            "y": 157.94182285541069
+          },
+          "nodeIndex": "Sales",
+          "nodeLineageTag": "ab2493cc-936b-4d5c-980c-736ebc9a80d1",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

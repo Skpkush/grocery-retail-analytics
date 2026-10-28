@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "categories",
   "position": {
     "x": 20,
     "y": 385,
     "z": 3000,
-    "width": 1240,
     "height": 315,
+    "width": 1240,
     "tabOrder": 3000
   },
   "visual": {
@@ -117,38 +117,8 @@
             },
             "direction": "Descending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
-    },
-    "objects": {
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Categories: size, own-brand share and discount rate'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
-      ]
     },
     "drillFilterOtherVisuals": true
   }

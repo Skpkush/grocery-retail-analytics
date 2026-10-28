@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "kpi_2",
   "position": {
     "x": 436,
     "y": 95,
     "z": 4000,
-    "width": 198,
     "height": 100,
+    "width": 198,
     "tabOrder": 4000
   },
   "visual": {
@@ -70,35 +70,26 @@
             }
           }
         }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Avg basket'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "d8b58e6f880350333acc",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Avg Basket Value"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

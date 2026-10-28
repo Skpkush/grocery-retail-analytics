@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "title",
   "position": {
     "x": 20,
     "y": 10,
     "z": 0,
-    "width": 1000,
     "height": 50,
+    "width": 1000,
     "tabOrder": 0
   },
   "visual": {
@@ -21,9 +21,9 @@
                   {
                     "value": "Complete Journey 2017 | Q4 business review",
                     "textStyle": {
+                      "fontWeight": "bold",
                       "fontSize": "20pt",
-                      "color": "#0F172A",
-                      "fontWeight": "bold"
+                      "color": "#0f172a"
                     }
                   }
                 ]

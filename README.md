@@ -7,7 +7,7 @@ a governed metric layer, a 13-query SQL analysis library, statistical tests of
 campaign, coupon and promotion impact, a Streamlit app with an ask-the-data
 copilot, and a Power BI report whose DAX is verified against the SQL.
 
-![CI](https://github.com/Skpkush/retail-analytics/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Skpkush/grocery-retail-analytics/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![DuckDB](https://img.shields.io/badge/DuckDB-warehouse-FFF000?logo=duckdb&logoColor=black)
 ![Power BI](https://img.shields.io/badge/Power%20BI-PBIP%20%2B%20DAX-F2C811?logo=powerbi&logoColor=black)

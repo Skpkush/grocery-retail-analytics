@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "rate_by_type",
   "position": {
     "x": 20,
     "y": 280,
     "z": 5000,
-    "width": 620,
     "height": 420,
+    "width": 620,
     "tabOrder": 5000
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Campaign Targets.campaign_type",
-              "nativeQueryRef": "campaign_type"
+              "nativeQueryRef": "campaign_type",
+              "active": true
             }
           ]
         },
@@ -65,8 +66,7 @@
             },
             "direction": "Ascending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
     "objects": {
@@ -94,33 +94,6 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Household redemption rate by campaign type'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
                 }
               }
             }

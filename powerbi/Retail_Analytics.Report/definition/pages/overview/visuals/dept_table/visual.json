@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "dept_table",
   "position": {
-    "x": 635,
-    "y": 300,
+    "x": 655.91986465434934,
+    "y": 321.0988458768154,
     "z": 13000,
-    "width": 625,
-    "height": 400,
+    "height": 399.31523141091145,
+    "width": 624.35886698269655,
     "tabOrder": 13000
   },
   "visual": {
@@ -103,39 +103,83 @@
             },
             "direction": "Descending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
-    "objects": {
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Department scorecard'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "48f36bc2a33d275b5bde",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Product"
+              }
+            },
+            "Property": "department"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "f225e7e0ca92db1d77a4",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Net Sales"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "c58ac92970bded028091",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Households"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "629881b3ca0b96999318",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Discount Rate %"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "a787f7f6ca0650d700c8",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Private Label Share %"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

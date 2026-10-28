@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "promo_dept",
   "position": {
     "x": 655,
     "y": 70,
     "z": 2000,
-    "width": 605,
     "height": 300,
+    "width": 605,
     "tabOrder": 2000
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Product.department",
-              "nativeQueryRef": "department"
+              "nativeQueryRef": "department",
+              "active": true
             }
           ]
         },
@@ -65,8 +66,7 @@
             },
             "direction": "Descending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
     "objects": {
@@ -94,33 +94,6 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Share of sales sold on loyalty discount'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
                 }
               }
             }

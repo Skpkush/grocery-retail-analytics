@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "dept_bar",
   "position": {
-    "x": 20,
-    "y": 300,
+    "x": 0,
+    "y": 321.0988458768154,
     "z": 12000,
-    "width": 600,
-    "height": 400,
+    "height": 399.31523141091145,
+    "width": 599.658955761403,
     "tabOrder": 12000
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Product.department",
-              "nativeQueryRef": "department"
+              "nativeQueryRef": "department",
+              "active": true
             }
           ]
         },
@@ -65,8 +66,7 @@
             },
             "direction": "Descending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
     "objects": {
@@ -99,35 +99,40 @@
             }
           }
         }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Net sales by department'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            }
-          }
-        }
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "afe8b7da41d1cbc70e83",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Product"
+              }
+            },
+            "Property": "department"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "8a89e6374e3b1c5d9959",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Sales"
+              }
+            },
+            "Property": "Net Sales"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

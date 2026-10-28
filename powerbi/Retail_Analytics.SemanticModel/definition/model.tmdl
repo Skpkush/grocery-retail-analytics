@@ -6,7 +6,11 @@ model Retail_Analytics
 		legacyRedirects
 		returnErrorValuesAsNull
 
-annotation PBI_ProTooling = ["MCP-PBIModeling"]
+annotation PBI_ProTooling = ["MCP-PBIModeling","DevMode"]
+
+annotation PBI_QueryOrder = ["Sales","Product","Household","Date","Coupon Redemptions","Campaign Targets","DataFolder"]
+
+annotation __PBI_TimeIntelligenceEnabled = 1
 
 ref table Sales
 ref table Product

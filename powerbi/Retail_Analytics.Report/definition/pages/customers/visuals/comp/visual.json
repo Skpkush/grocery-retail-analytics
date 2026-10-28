@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "comp",
   "position": {
     "x": 655,
     "y": 185,
     "z": 5000,
-    "width": 605,
     "height": 250,
+    "width": 605,
     "tabOrder": 5000
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Household.household_comp",
-              "nativeQueryRef": "household_comp"
+              "nativeQueryRef": "household_comp",
+              "active": true
             }
           ]
         },
@@ -65,8 +66,7 @@
             },
             "direction": "Descending"
           }
-        ],
-        "isDefaultSort": false
+        ]
       }
     },
     "objects": {
@@ -94,33 +94,6 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
-                }
-              }
-            }
-          }
-        }
-      ],
-      "title": [
-        {
-          "properties": {
-            "show": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Sales per household by composition (surveyed households)'"
-                }
-              }
-            },
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
                 }
               }
             }
