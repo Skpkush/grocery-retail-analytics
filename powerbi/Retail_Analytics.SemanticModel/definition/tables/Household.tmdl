@@ -1,0 +1,59 @@
+/// All 2,469 shopping households; demographics for 801.
+table Household
+	lineageTag: 3a51f200-f18d-48f0-8b6d-2d49494799c2
+
+	column household_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 73577df1-4df0-4d71-93d9-0a94d0010958
+		sourceColumn: household_id
+
+	column has_demographics
+		dataType: boolean
+		lineageTag: 2e0e2e52-1411-43dc-8f9f-ec0fa6d0c141
+		sourceColumn: has_demographics
+
+	column age_order
+		dataType: int64
+		isHidden
+		lineageTag: 2c88cdc9-801d-4167-ac49-e8e710bbe7c0
+		summarizeBy: none
+		sourceColumn: age_order
+
+	column income_band
+		dataType: string
+		lineageTag: c4d68a9f-7be1-42eb-83d9-64fa8f365923
+		sourceColumn: income_band
+
+	column household_comp
+		dataType: string
+		lineageTag: 59f97641-602b-4655-b6c2-e0727a2cc474
+		sourceColumn: household_comp
+
+	column household_size
+		dataType: string
+		lineageTag: 6f3e8c5e-359b-41e7-8c20-4b89b0a4013e
+		sourceColumn: household_size
+
+	column campaigns_received
+		dataType: int64
+		lineageTag: 6788e84e-57cd-43af-932b-76f86af2ec65
+		summarizeBy: none
+		sourceColumn: campaigns_received
+
+	column age
+		dataType: string
+		lineageTag: 55bb592a-c0fe-4e47-9afb-1da18eaa575e
+		sourceColumn: age
+		sortByColumn: age_order
+
+	partition Household = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "dim_household.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"household_id", type text}, {"has_demographics", type logical}, {"age", type text}, {"age_order", Int64.Type}, {"income_band", type text}, {"household_comp", type text}, {"household_size", type text}, {"campaigns_received", Int64.Type}})
+				in
+				    Typed
+

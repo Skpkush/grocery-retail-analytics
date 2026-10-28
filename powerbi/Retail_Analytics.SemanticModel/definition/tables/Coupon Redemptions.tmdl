@@ -1,0 +1,42 @@
+/// One row per coupon redemption.
+table 'Coupon Redemptions'
+	lineageTag: a8a0fdac-5e38-4f75-9150-23c3f6f34bf5
+
+	column household_id
+		dataType: string
+		isHidden
+		lineageTag: 4b415079-8c67-43d1-93fa-372c1b2381e5
+		sourceColumn: household_id
+
+	column coupon_upc
+		dataType: string
+		isHidden
+		lineageTag: 968aef3b-33ae-42a8-8a89-494c6f3ad576
+		sourceColumn: coupon_upc
+
+	column campaign_id
+		dataType: string
+		lineageTag: b124b2fa-6444-43c1-8236-8b0e2d2816b5
+		sourceColumn: campaign_id
+
+	column campaign_type
+		dataType: string
+		lineageTag: 58b799c2-d8a1-4c27-bb21-fce2abd0ea90
+		sourceColumn: campaign_type
+
+	column redemption_date
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm-dd
+		lineageTag: f2900470-fd0e-4af7-8809-df9eadea19e2
+		sourceColumn: redemption_date
+
+	partition 'Coupon Redemptions' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "fct_coupon_redemptions.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"household_id", type text}, {"coupon_upc", type text}, {"campaign_id", type text}, {"campaign_type", type text}, {"redemption_date", type date}})
+				in
+				    Typed
+

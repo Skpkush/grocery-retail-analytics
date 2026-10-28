@@ -1,0 +1,29 @@
+/// One row per campaign x targeted household.
+table 'Campaign Targets'
+	lineageTag: 4457a9c4-e767-4b7a-a301-1f19d1c39065
+
+	column campaign_id
+		dataType: string
+		lineageTag: 57a5d895-3c98-4097-b5f4-1ab19b417940
+		sourceColumn: campaign_id
+
+	column campaign_type
+		dataType: string
+		lineageTag: ca14d261-04ac-4d93-9223-be3b6f4b85bb
+		sourceColumn: campaign_type
+
+	column household_id
+		dataType: string
+		isHidden
+		lineageTag: 536b0ef4-b555-4439-a650-98c7160f12b2
+		sourceColumn: household_id
+
+	partition 'Campaign Targets' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "fct_campaign_targets.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"campaign_id", type text}, {"campaign_type", type text}, {"household_id", type text}})
+				in
+				    Typed
+

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "narrative",
+  "position": {
+    "x": 20,
+    "y": 180,
+    "z": 4000,
+    "width": 1240,
+    "height": 90,
+    "tabOrder": 4000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "50.6% of coupon redemptions (95% CI 48.5-52.8%) came from households already buying the product. Campaign lift is not measurable: the difference-in-differences placebo test fails for 3 of 3 campaign types (targeted households were already declining before launch). Recommendation: hold out 10% of every target list.",
+                    "textStyle": {
+                      "fontSize": "11pt",
+                      "color": "#0F172A"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,240 @@
+/// Merchandise transaction lines (fct_sales, is_merch only).
+table Sales
+	lineageTag: ab2493cc-936b-4d5c-980c-736ebc9a80d1
+
+	/// Merchandise sales the retailer received. Mirrors metrics.net_sales.
+	measure 'Net Sales' = SUM ( Sales[sales_value] )
+		formatString: \$#,0
+		displayFolder: Core
+		lineageTag: eaed9586-62f3-4b87-bf99-24ac33c89a5a
+
+	/// Shelf price: sales_value + retail_disc + coupon_match_disc.
+	measure 'Gross Sales' = SUM ( Sales[gross_sales] )
+		formatString: \$#,0
+		displayFolder: Core
+		lineageTag: 09893b9b-884d-4f3f-b2fd-4a559aba5e33
+
+	/// Loyalty discount plus coupon match (retailer funded).
+	measure 'Retailer Discount' = SUM ( Sales[retail_disc] ) + SUM ( Sales[coupon_match_disc] )
+		formatString: \$#,0
+		displayFolder: Core
+		lineageTag: d8fe3d0d-8724-41bd-95bc-e0cfb85d5c37
+
+	measure 'Manufacturer Coupons' = SUM ( Sales[coupon_disc] )
+		formatString: \$#,0
+		displayFolder: Core
+		lineageTag: 35f926c2-610f-4f92-83ca-92fcb0af270d
+
+	/// Retailer-funded discount / gross sales. Mirrors metrics.discount_rate_pct.
+	measure 'Discount Rate %' = DIVIDE ( [Retailer Discount], [Gross Sales] )
+		formatString: 0.0%
+		displayFolder: Core
+		lineageTag: 30f8a06a-821a-47dc-b7d7-842cdd66eaac
+
+	measure Baskets = DISTINCTCOUNT ( Sales[basket_id] )
+		formatString: #,0
+		displayFolder: Core
+		lineageTag: 07d3cdcc-dff0-4330-bf39-f626ae59d4e1
+
+	measure Households = DISTINCTCOUNT ( Sales[household_id] )
+		formatString: #,0
+		displayFolder: Core
+		lineageTag: 98c60d9e-229f-4ad7-bb27-d4f6047eba9e
+
+	/// Fuel excluded (no unit count).
+	measure 'Units Sold' = SUM ( Sales[units] )
+		formatString: #,0
+		displayFolder: Core
+		lineageTag: 40d0e304-d3c9-4eb8-870a-be0801fe86af
+
+	measure 'Avg Basket Value' = DIVIDE ( [Net Sales], [Baskets] )
+		formatString: \$#,0.00
+		displayFolder: Core
+		lineageTag: 8ed941e4-c304-49fb-9bc2-ad5c472d2b49
+
+	measure 'Units per Basket' = DIVIDE ( [Units Sold], [Baskets] )
+		formatString: 0.00
+		displayFolder: Core
+		lineageTag: 82df1127-1e14-45a3-a43e-2759270a9dda
+
+	measure 'Sales per Household' = DIVIDE ( [Net Sales], [Households] )
+		formatString: \$#,0.00
+		displayFolder: Core
+		lineageTag: 00c0f42b-e75f-4209-ae9e-5baa0b24c95a
+
+	/// Share of net sales from the retailer's own brand.
+	measure 'Private Label Share %' = DIVIDE ( CALCULATE ( [Net Sales], Product[brand] = "Private" ), [Net Sales] )
+		formatString: 0.0%
+		displayFolder: Core
+		lineageTag: 2fab54de-7a73-4336-b1e4-15b9f8c96f00
+
+	/// Share of net sales sold with a loyalty discount.
+	measure 'Promo Sales Share %' = DIVIDE ( CALCULATE ( [Net Sales], Sales[retail_disc] > 0 ), [Net Sales] )
+		formatString: 0.0%
+		displayFolder: Core
+		lineageTag: f008e6b5-f1b0-49d2-becd-98fd14f38da5
+
+	measure 'Net Sales PQ' = CALCULATE ( [Net Sales], DATEADD ( 'Date'[date_key], -1, QUARTER ) )
+		formatString: \$#,0
+		displayFolder: Time comparison
+		lineageTag: 24176f64-0620-41e2-9a0c-4beee075e7a5
+
+	measure 'Net Sales QoQ %' = DIVIDE ( [Net Sales] - [Net Sales PQ], [Net Sales PQ] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Time comparison
+		lineageTag: f137790a-22e4-40f8-899f-b5a9a9e4a03a
+
+	measure 'Baskets QoQ %' =
+			VAR Prior = CALCULATE ( [Baskets], DATEADD ( 'Date'[date_key], -1, QUARTER ) )
+			RETURN DIVIDE ( [Baskets] - Prior, Prior )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Time comparison
+		lineageTag: e5568ac3-590f-405b-a697-b30feaebd977
+
+	measure 'Avg Basket QoQ %' =
+			VAR Prior = CALCULATE ( [Avg Basket Value], DATEADD ( 'Date'[date_key], -1, QUARTER ) )
+			RETURN DIVIDE ( [Avg Basket Value] - Prior, Prior )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Time comparison
+		lineageTag: cd362669-bf01-45cd-aab9-69bc59599ea8
+
+	measure 'Discount Rate Change pts' =
+			VAR Prior = CALCULATE ( [Discount Rate %], DATEADD ( 'Date'[date_key], -1, QUARTER ) )
+			RETURN IF ( NOT ISBLANK ( Prior ), ( [Discount Rate %] - Prior ) * 100 )
+		formatString: +0.0 "pts";-0.0 "pts";0.0 "pts"
+		displayFolder: Time comparison
+		lineageTag: 628a0ecf-9a90-42dc-9aa2-342461320db0
+
+	/// Week over week, by retail week (matches 02_weekly_trend.sql).
+	measure 'WoW Growth %' =
+			VAR Wk = MAX ( 'Date'[retail_week] )
+			VAR Prior = CALCULATE ( [Net Sales], REMOVEFILTERS ( 'Date' ), 'Date'[retail_week] = Wk - 1 )
+			RETURN IF ( HASONEVALUE ( 'Date'[retail_week] ), DIVIDE ( [Net Sales] - Prior, Prior ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Time comparison
+		lineageTag: 29b14ec3-501b-4539-87b0-aef9ca09ed1e
+
+	/// Average weekly sales over the current and 3 prior retail weeks (matches 02_weekly_trend.sql).
+	measure 'Rolling 4-Week Sales' =
+			VAR Wk = MAX ( 'Date'[retail_week] )
+			VAR Weeks = CALCULATETABLE ( VALUES ( 'Date'[retail_week] ), REMOVEFILTERS ( 'Date' ), 'Date'[retail_week] > Wk - 4, 'Date'[retail_week] <= Wk )
+			RETURN AVERAGEX ( Weeks, VAR w = 'Date'[retail_week] RETURN CALCULATE ( [Net Sales], REMOVEFILTERS ( 'Date' ), 'Date'[retail_week] = w ) )
+		formatString: \$#,0
+		displayFolder: Time comparison
+		lineageTag: 02ecf1f7-3d15-4b55-ac54-b2e6fe58264d
+
+	/// Share of sales from the top decile of households (matches 07_customer_concentration.sql: rank <= 10% of households).
+	measure 'Top 10% Household Share' =
+			VAR HH = FILTER ( ADDCOLUMNS ( VALUES ( Sales[household_id] ), "@s", [Net Sales] ), NOT ISBLANK ( [@s] ) )
+			VAR N = INT ( 0.1 * COUNTROWS ( HH ) )
+			VAR TopHH = TOPN ( N, HH, [@s], DESC )
+			RETURN DIVIDE ( SUMX ( TopHH, [@s] ), SUMX ( HH, [@s] ) )
+		formatString: 0.0%
+		displayFolder: Customers
+		lineageTag: 59206897-53ea-47b0-8c15-106372a1b7b0
+
+	measure Redemptions = COUNTROWS ( 'Coupon Redemptions' )
+		formatString: #,0
+		displayFolder: Campaigns
+		lineageTag: 8d62f543-7314-4fef-99fb-bdc289a97666
+
+	/// Campaign x household targets (a household counts once per campaign).
+	measure 'Targeted Households' = COUNTROWS ( 'Campaign Targets' )
+		formatString: #,0
+		displayFolder: Campaigns
+		lineageTag: f96d1106-53f9-4ae1-b5ea-940054c2c6be
+
+	/// Distinct redeeming households per campaign / targeted households (matches 09_campaign_reach.sql). The campaign id is captured in a variable because CALCULATE filter arguments are evaluated before context transition.
+	measure 'Household Redemption Rate %' =
+			VAR Redeemers =
+			    SUMX (
+			        VALUES ( 'Campaign Targets'[campaign_id] ),
+			        VAR c = 'Campaign Targets'[campaign_id]
+			        RETURN CALCULATE ( DISTINCTCOUNT ( 'Coupon Redemptions'[household_id] ), 'Coupon Redemptions'[campaign_id] = c )
+			    )
+			RETURN DIVIDE ( Redeemers, [Targeted Households] )
+		formatString: 0.0%
+		displayFolder: Campaigns
+		lineageTag: 2a0d98ff-2b61-4ca2-a38f-cf6d97e8dc92
+
+	column business_date
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm-dd
+		lineageTag: 99329ead-5360-445f-8f7c-8d92c52c026f
+		sourceColumn: business_date
+
+	column household_id
+		dataType: string
+		isHidden
+		lineageTag: a376e459-89ba-4454-af67-79c18001914b
+		sourceColumn: household_id
+
+	column store_id
+		dataType: string
+		lineageTag: 54b2af95-b4cd-44bd-b035-dafeaf94441a
+		sourceColumn: store_id
+
+	column basket_id
+		dataType: string
+		isHidden
+		lineageTag: 31f50992-f73a-4d82-b1e6-0c69b1f2c5d3
+		sourceColumn: basket_id
+
+	column product_id
+		dataType: string
+		isHidden
+		lineageTag: fab955d7-567c-4c86-870d-d443b495529c
+		sourceColumn: product_id
+
+	column units
+		dataType: double
+		isHidden
+		lineageTag: fb250cf1-9f7d-43d9-8fc9-af187355559d
+		summarizeBy: none
+		sourceColumn: units
+
+	column sales_value
+		dataType: double
+		isHidden
+		lineageTag: 614be30d-640d-4f8f-b396-62a11d24891f
+		summarizeBy: none
+		sourceColumn: sales_value
+
+	column retail_disc
+		dataType: double
+		isHidden
+		lineageTag: d010468a-78df-47f2-b99b-1acb55ad0f65
+		summarizeBy: none
+		sourceColumn: retail_disc
+
+	column coupon_disc
+		dataType: double
+		isHidden
+		lineageTag: 9bd675fc-db0a-46a4-838c-921503a92814
+		summarizeBy: none
+		sourceColumn: coupon_disc
+
+	column coupon_match_disc
+		dataType: double
+		isHidden
+		lineageTag: 751fc1fc-44b8-4925-9700-6f9183fd106d
+		summarizeBy: none
+		sourceColumn: coupon_match_disc
+
+	column gross_sales
+		dataType: double
+		isHidden
+		lineageTag: e3cb495e-281f-4fe8-a25e-fc7d62276bdc
+		summarizeBy: none
+		sourceColumn: gross_sales
+
+	partition Sales = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "fct_sales.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"business_date", type date}, {"household_id", type text}, {"store_id", type text}, {"basket_id", type text}, {"product_id", type text}, {"units", type number}, {"sales_value", type number}, {"retail_disc", type number}, {"coupon_disc", type number}, {"coupon_match_disc", type number}, {"gross_sales", type number}})
+				in
+				    Typed
+

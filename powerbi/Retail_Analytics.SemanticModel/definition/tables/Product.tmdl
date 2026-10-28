@@ -1,0 +1,40 @@
+/// Product master. No product names exist in the source; product_type is the most specific label.
+table Product
+	lineageTag: e968aa1f-af3f-435e-9415-60747fd52ec3
+
+	column product_id
+		dataType: string
+		isHidden
+		isKey
+		lineageTag: 6d4f2dd6-c4c4-4c78-b1f8-e076179215bb
+		sourceColumn: product_id
+
+	column department
+		dataType: string
+		lineageTag: a88be1cb-1e4e-4654-aabc-df5a2f6f516b
+		sourceColumn: department
+
+	column product_category
+		dataType: string
+		lineageTag: 073e0df6-a156-4a50-b779-f5077c90978f
+		sourceColumn: product_category
+
+	column product_type
+		dataType: string
+		lineageTag: c0d07b5c-3d76-48c0-bf29-2584ddba22d5
+		sourceColumn: product_type
+
+	column brand
+		dataType: string
+		lineageTag: 1181a546-6a1b-48a0-92c9-b3ced2ee0382
+		sourceColumn: brand
+
+	partition Product = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "dim_product.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"product_id", type text}, {"department", type text}, {"product_category", type text}, {"product_type", type text}, {"brand", type text}})
+				in
+				    Typed
+

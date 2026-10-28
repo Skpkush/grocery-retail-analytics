@@ -1,0 +1,17 @@
+model Retail_Analytics
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_ProTooling = ["MCP-PBIModeling"]
+
+ref table Sales
+ref table Product
+ref table Household
+ref table Date
+ref table 'Coupon Redemptions'
+ref table 'Campaign Targets'
+

@@ -1,0 +1,24 @@
+relationship Sales_Product
+	fromColumn: Sales.product_id
+	toColumn: Product.product_id
+
+relationship Sales_Household
+	fromColumn: Sales.household_id
+	toColumn: Household.household_id
+
+relationship Sales_Date
+	fromColumn: Sales.business_date
+	toColumn: Date.date_key
+
+relationship Redemptions_Household
+	fromColumn: 'Coupon Redemptions'.household_id
+	toColumn: Household.household_id
+
+relationship Redemptions_Date
+	fromColumn: 'Coupon Redemptions'.redemption_date
+	toColumn: Date.date_key
+
+relationship Targets_Household
+	fromColumn: 'Campaign Targets'.household_id
+	toColumn: Household.household_id
+

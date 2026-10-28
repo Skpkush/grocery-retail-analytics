@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    name: Lint + unit tests (SQL models on fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -q
+
+  data:
+    name: Pipeline on real data + integration tests + eval gate
+    needs: unit
+    runs-on: ubuntu-latest
+    env:
+      RETAIL_OFFLINE: "1"
+      # The 20.9M-row promotions file needs several GB of RAM to load; skip it on CI.
+      RETAIL_SKIP_TABLES: promotions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Cache source files
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: completejourney-raw-v1
+      - name: Extract, land, transform, quality gate, stats, report
+        run: PYTHONPATH=src python -m retail.pipeline
+      - run: pytest -q
+      - name: Copilot evaluation gate (fail below 90%)
+        run: PYTHONPATH=src python -m retail.evaluate --min 0.9

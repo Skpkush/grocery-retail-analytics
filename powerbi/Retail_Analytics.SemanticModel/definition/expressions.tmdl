@@ -1,0 +1,4 @@
+/// Folder with the Parquet exports (python -m retail.export_powerbi). Change after cloning.
+expression DataFolder = "C:\Projects\retail-analytics\powerbi\data\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 07e5b11e-224a-40b5-8916-bde0883930ec
+
