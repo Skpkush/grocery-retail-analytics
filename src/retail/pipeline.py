@@ -23,8 +23,8 @@ from retail import (
 logger = logging.getLogger("retail")
 
 
-def run() -> dict:
-    started = time.perf_counter()
+def build_warehouse() -> dict:
+    """Steps 1-4 only: enough for the app to start. The reports stay as committed."""
     logger.info("1/6 extract")
     ingest.download()
     logger.info("2/6 land")
@@ -44,6 +44,12 @@ def run() -> dict:
         logger.info("  %-4s %-48s %s", status, check["name"], f"{check['violations']:,}")
     if report["blocking_failures"]:
         raise SystemExit(f"Quality gate failed: {', '.join(report['blocking_failures'])}")
+    return report
+
+
+def run() -> dict:
+    started = time.perf_counter()
+    report = build_warehouse()
     logger.info("5/6 statistical tests")
     stats.run()
     logger.info("6/6 insights report and Power BI export")

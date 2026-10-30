@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -28,9 +29,37 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
+
+@st.cache_resource(show_spinner=False)
+def ensure_warehouse() -> None:
+    """Build the warehouse on first start (e.g. a fresh Streamlit Cloud container).
+
+    The 20.9M-row promotions file needs more memory than a small host has, so it is
+    skipped; the promotion-lift results come from the committed reports instead.
+    """
+    if WAREHOUSE_PATH.exists():
+        return
+    os.environ.setdefault("RETAIL_SKIP_TABLES", "promotions")
+    from retail import pipeline
+
+    try:
+        pipeline.build_warehouse()
+    except BaseException:
+        WAREHOUSE_PATH.unlink(missing_ok=True)  # never leave a half-built warehouse behind
+        raise
+
+
 if not WAREHOUSE_PATH.exists():
-    st.error("Warehouse not built. Run `python -m retail.pipeline` first.")
-    st.stop()
+    with st.spinner("First start: downloading the data and building the warehouse "
+                    "(about 2-3 minutes)..."):
+        try:
+            ensure_warehouse()
+        except BaseException as exc:
+            ensure_warehouse.clear()
+            st.error(f"Could not build the warehouse: {exc}. Run `python -m retail.pipeline` "
+                     "locally to see the full log.")
+            st.stop()
 
 
 @st.cache_data(show_spinner=False)
