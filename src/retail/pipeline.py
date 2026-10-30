@@ -8,7 +8,17 @@ from __future__ import annotations
 import logging
 import time
 
-from retail import analytics, export_powerbi, ingest, quality, sql_guard, stats, transform
+from retail import (
+    analytics,
+    docs_gen,
+    export_powerbi,
+    findings,
+    ingest,
+    quality,
+    sql_guard,
+    stats,
+    transform,
+)
 
 logger = logging.getLogger("retail")
 
@@ -38,8 +48,10 @@ def run() -> dict:
     stats.run()
     logger.info("6/6 insights report and Power BI export")
     analytics.write_report()
+    findings.write()
     # The export writes files, so it needs a connection with external access; DuckDB
     # allows only one configuration per file per process, so release the governed one.
+    docs_gen.write()
     sql_guard.reset_connection()
     export_powerbi.export()
     logger.info("pipeline finished in %.0fs", time.perf_counter() - started)

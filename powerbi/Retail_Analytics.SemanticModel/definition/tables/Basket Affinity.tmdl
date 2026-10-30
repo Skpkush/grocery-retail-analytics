@@ -1,0 +1,57 @@
+/// Category pairs bought in the same basket (mart_basket_affinity). Lift > 1 = more often than chance.
+table 'Basket Affinity'
+	lineageTag: e72b0f30-7261-48e0-91ec-0e2beb736650
+
+	/// Times more often the category pair shares a basket than chance.
+	measure 'Affinity Lift' = MAX ( 'Basket Affinity'[lift] )
+		formatString: 0.00
+		displayFolder: Products
+		lineageTag: c338c06f-8950-4928-85a4-6595fc3cb5c3
+
+	column category_a
+		dataType: string
+		lineageTag: 9c4e923d-d8c1-4253-9ac1-808e48d40447
+		sourceColumn: category_a
+
+	column category_b
+		dataType: string
+		lineageTag: 7888d618-cea4-4be2-bc66-4f40304903d4
+		sourceColumn: category_b
+
+	column baskets_together
+		dataType: int64
+		formatString: #,0
+		lineageTag: f5e25ed7-06d3-43f4-b0db-443f8452d8c7
+		summarizeBy: none
+		sourceColumn: baskets_together
+
+	column support_pct
+		dataType: double
+		formatString: 0.00
+		lineageTag: 3e83b092-e8d7-4da7-95fe-0d245fd51c0a
+		summarizeBy: none
+		sourceColumn: support_pct
+
+	column confidence_a_to_b_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: ea242919-45f4-4589-90d2-b5b44b47a054
+		summarizeBy: none
+		sourceColumn: confidence_a_to_b_pct
+
+	column lift
+		dataType: double
+		formatString: 0.00
+		lineageTag: e8e24144-2ac8-4632-9bde-9e6dfaeb5929
+		summarizeBy: none
+		sourceColumn: lift
+
+	partition 'Basket Affinity' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "basket_affinity.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"category_a", type text}, {"category_b", type text}, {"baskets_together", Int64.Type}, {"support_pct", type number}, {"confidence_a_to_b_pct", type number}, {"lift", type number}})
+				in
+				    Typed
+

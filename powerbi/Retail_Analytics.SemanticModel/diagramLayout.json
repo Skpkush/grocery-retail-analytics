@@ -85,6 +85,45 @@
             "width": 234
           },
           "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1326.1146263953915,
+            "y": 257.00564352413676
+          },
+          "nodeIndex": "Basket Affinity",
+          "nodeLineageTag": "e72b0f30-7261-48e0-91ec-0e2beb736650",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1610.1146263953915,
+            "y": 257.00564352413676
+          },
+          "nodeIndex": "Campaign Tests",
+          "nodeLineageTag": "361270e8-ecb2-4954-96a6-5b6b965ba38f",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1894.1146263953915,
+            "y": 245.00564352413676
+          },
+          "nodeIndex": "Promotion Lift",
+          "nodeLineageTag": "ff38d8af-056b-46b3-bbfc-fde3a39d6caf",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
         }
       ],
       "name": "All tables",

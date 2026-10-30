@@ -44,8 +44,9 @@ def stats() -> dict:
 
 
 @st.cache_data(show_spinner=False)
-def findings() -> list[str]:
-    return analytics.headline_findings()
+def structured_findings() -> list[dict]:
+    path = Path(__file__).resolve().parent / "reports" / "findings.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 
 
 def chart(fig, height: int = 360):
@@ -79,9 +80,15 @@ def overview() -> None:
         col.metric(label, fmt(item["current"]), f"{item['delta']:+.1f}{unit}",
                    delta_color="inverse" if key == "discount_rate_pct" else "normal",
                    help=f"Q3: {fmt(item['prior'])}")
-    with st.expander("Headline findings", expanded=True):
-        for f in findings():
-            st.markdown(f"- {md(f)}")
+    st.subheader("Findings and recommendations")
+    note("Each finding shows its evidence, the action, the caveat and how much weight it can bear. "
+         "No savings or ROI are claimed: the data has no costs, and campaign effects are not identified.")
+    for i, f in enumerate(structured_findings(), 1):
+        with st.expander(f"{i}. {f['title']}", expanded=i <= 2):
+            st.markdown(md(f"**Evidence.** {f['evidence']}"))
+            st.markdown(md(f"**Action.** {f['recommendation']}"))
+            st.markdown(md(f"**Caveat.** {f['caveat']}"))
+            st.caption(f"Confidence: {f['confidence']} · Sources: {', '.join(f['sources'])}")
     weekly = run("weekly_trend")
     weekly = weekly[weekly.retail_week.between(2, 52)]
     fig = px.bar(weekly, x="week_start", y="net_sales", title="Weekly merchandise sales (full weeks)",
@@ -237,6 +244,18 @@ def quality() -> None:
     st.dataframe(checks[["status", "name", "severity", "violations", "description"]],
                  hide_index=True, use_container_width=True)
 
+    st.subheader("Power BI measures reconciled with SQL")
+    try:
+        from retail.reconcile import reconcile
+
+        rec = pd.DataFrame(reconcile())
+        st.metric("Values matching", f"{int(rec.match.sum())}/{len(rec)}")
+        st.dataframe(rec, hide_index=True, use_container_width=True)
+        note("DAX values come from the live Power BI model (reports/powerbi_dax_results.json); SQL "
+             "values are recomputed here against the warehouse.")
+    except Exception as exc:  # e.g. promotions skipped on a small machine
+        st.info(f"Reconciliation unavailable: {exc}")
+
 
 def audit_page() -> None:
     events = audit.read_recent(200)
@@ -251,12 +270,29 @@ def audit_page() -> None:
     st.dataframe(df, hide_index=True, use_container_width=True)
 
 
-st.title("Retail Analytics: Complete Journey 2017")
-note("1.46M real grocery transactions from 2,469 households (84.51° / dunnhumby). "
-     "Merchandise only: fuel and gift cards excluded.")
-pages = {"Overview": overview, "Customers": customers, "Campaigns & coupons": campaigns,
-         "Promotions & pricing": promotions, "Ask the data": ask_page, "SQL runner": sql_runner,
-         "Data quality": quality, "Audit log": audit_page}
-for tab, render in zip(st.tabs(list(pages)), pages.values(), strict=True):
-    with tab:
+def page(render, title: str, url: str, icon: str, default: bool = False):
+    def body():
+        st.title(title)
+        note("1.46M real grocery transactions from 2,469 households (84.51° / dunnhumby), 2017. "
+             "Merchandise only: fuel and gift cards excluded.")
         render()
+    return st.Page(body, title=title, url_path=url, icon=icon, default=default)
+
+
+navigation = st.navigation({
+    "Analysis": [
+        page(overview, "Overview", "overview", "📊", default=True),
+        page(customers, "Customers", "customers", "👥"),
+        page(campaigns, "Campaigns & coupons", "campaigns", "🎯"),
+        page(promotions, "Promotions & pricing", "promotions", "🏷️"),
+    ],
+    "Tools": [
+        page(ask_page, "Ask the data", "ask", "💬"),
+        page(sql_runner, "SQL runner", "sql", "🧮"),
+    ],
+    "Governance": [
+        page(quality, "Data quality", "quality", "✅"),
+        page(audit_page, "Audit log", "audit", "📜"),
+    ],
+})
+navigation.run()

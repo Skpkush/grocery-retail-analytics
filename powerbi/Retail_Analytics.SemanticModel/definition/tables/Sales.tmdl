@@ -157,6 +157,86 @@ table Sales
 		displayFolder: Campaigns
 		lineageTag: 2a0d98ff-2b61-4ca2-a38f-cf6d97e8dc92
 
+	/// Shopping trips per household in the selected period.
+	measure 'Baskets per Household' = DIVIDE ( [Baskets], [Households] )
+		formatString: 0.0
+		displayFolder: Customers
+		lineageTag: 0a6da42b-5530-469e-9293-f890dc2721aa
+
+	/// Share of shopping households with 2+ trips in the selected period.
+	measure 'Repeat Household Rate %' =
+			VAR HH = ADDCOLUMNS ( VALUES ( Sales[household_id] ), "@trips", CALCULATE ( DISTINCTCOUNT ( Sales[basket_id] ) ) )
+			RETURN DIVIDE ( COUNTROWS ( FILTER ( HH, [@trips] >= 2 ) ), COUNTROWS ( HH ) )
+		formatString: 0.0%
+		displayFolder: Customers
+		lineageTag: eaab5c96-f434-4adc-82b0-6b39d30ee8a5
+
+	/// Share of total sales from the households in context (e.g. one RFM segment).
+	measure 'Segment Sales Share %' = DIVIDE ( [Net Sales], CALCULATE ( [Net Sales], REMOVEFILTERS ( Household ) ) )
+		formatString: 0.0%
+		displayFolder: Customers
+		lineageTag: f9b07232-97f9-4085-bb2f-409af519c046
+
+	/// Share of total merchandise sales from the products in context.
+	measure 'Category Sales Share %' = DIVIDE ( [Net Sales], CALCULATE ( [Net Sales], REMOVEFILTERS ( Product ) ) )
+		formatString: 0.0%
+		displayFolder: Products
+		lineageTag: 9c80286e-5f28-449a-ae8b-5d45b0bda632
+
+	/// Share of shopping households that bought the products in context (matches penetration_pct in 03_department_performance.sql, which divides by all 2,469 households).
+	measure 'Product Penetration %' = DIVIDE ( [Households], COUNTROWS ( ALL ( Household ) ) )
+		formatString: 0.0%
+		displayFolder: Products
+		lineageTag: 38e8513f-4219-4fca-b24f-64c1e5e69b7d
+
+	/// Coupon redemptions with a full 56-day look-back (on/after 26 Feb 2017).
+	measure 'Scored Redemptions' = CALCULATE ( COUNTROWS ( 'Coupon Redemptions' ), 'Coupon Redemptions'[is_scored] = TRUE () )
+		formatString: #,0
+		displayFolder: Promotions
+		lineageTag: e16749c9-587a-4466-b75d-6d148af1d3ef
+
+	measure 'Habitual Redemptions' = CALCULATE ( COUNTROWS ( 'Coupon Redemptions' ), 'Coupon Redemptions'[is_scored] = TRUE (), 'Coupon Redemptions'[is_habitual] = TRUE () )
+		formatString: #,0
+		displayFolder: Promotions
+		lineageTag: 8b438e5e-d23e-411d-874c-25b86a94c387
+
+	/// Share of scored redemptions by households that already bought the product in the prior 56 days (matches 10_coupon_incrementality.sql). A proxy for non-incremental coupon spend.
+	measure 'Habitual Redemption %' = DIVIDE ( [Habitual Redemptions], [Scored Redemptions] )
+		formatString: 0.0%
+		displayFolder: Promotions
+		lineageTag: a846011b-54ea-4a18-a3ca-59f1b349bf4b
+
+	/// Net sales on lines that carried a loyalty discount.
+	measure 'Loyalty Discount Sales' = CALCULATE ( [Net Sales], Sales[retail_disc] > 0 )
+		formatString: \$#,0
+		displayFolder: Promotions
+		lineageTag: 4d759dd0-74d8-4aa1-b11d-c6564c164635
+
+	/// Font colour for the Sales vs Q3 card: green up, red down.
+	measure 'Color Sales QoQ' = IF ( [Net Sales QoQ %] >= 0, "#15803D", "#B91C1C" )
+		displayFolder: Formatting
+		lineageTag: 9084a13c-bf1b-4f2f-b737-d3abf417b981
+
+	/// Font colour for the Transactions vs Q3 card.
+	measure 'Color Baskets QoQ' = IF ( [Baskets QoQ %] >= 0, "#15803D", "#B91C1C" )
+		displayFolder: Formatting
+		lineageTag: 06c9a093-bae2-4929-8d0d-ce6bf281e78a
+
+	/// Font colour for the Basket value vs Q3 card.
+	measure 'Color Basket Value QoQ' = IF ( [Avg Basket QoQ %] >= 0, "#15803D", "#B91C1C" )
+		displayFolder: Formatting
+		lineageTag: 9becd299-42c4-4e56-8b3b-46a34378bc26
+
+	/// Reversed: a lower discount rate is good (green), a higher one is red.
+	measure 'Color Discount Change' = IF ( [Discount Rate Change pts] <= 0, "#15803D", "#B91C1C" )
+		displayFolder: Formatting
+		lineageTag: 3128dfa3-d653-4d5b-be4d-b0c46712c88b
+
+	/// Bar colour: Champions teal, At risk amber, other segments grey.
+	measure 'Color RFM Segment' = SWITCH ( SELECTEDVALUE ( Household[rfm_segment] ), "1. Champions", "#0F766E", "3. At risk", "#D97706", "#94A3B8" )
+		displayFolder: Formatting
+		lineageTag: 1a308300-3b7b-46ee-86a4-b641273dfdda
+
 	column business_date
 		dataType: dateTime
 		isHidden

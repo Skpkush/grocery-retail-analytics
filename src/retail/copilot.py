@@ -124,8 +124,66 @@ def search_docs(question: str, k: int = 3) -> list[tuple[str, str, float]]:
 
 # --- routing and SQL planning -------------------------------------------------
 
+# Questions the data cannot answer: (pattern, explanation). Checked before any SQL runs,
+# so the copilot says "not supported" instead of returning a plausible-looking table.
+UNSUPPORTED: list[tuple[str, str]] = [
+    (r"\b(margin|profit\w*|cogs|cost of goods|markup|profitab\w*)\b",
+     "The dataset has no product costs, so margin and profit cannot be calculated. Sales, discounts "
+     "and own-brand share are available instead."),
+    (r"\b(forecast\w*|predict\w*|projection|next (year|quarter|month))\b",
+     "Forecasting is not one of the approved analyses, and one year of data is too short to "
+     "model seasonality reliably."),
+    (r"\b(20(?!17)\d{2})\b",
+     "The data covers 2017 only (one trading year), so other years cannot be answered."),
+    (r"\b(competitor\w*|market share|weather|employee\w*|staff\w*|wage\w*|inventory|stock levels?|"
+     r"store locations?|footfall|web traffic|online orders?)\b",
+     "That information is not in the dataset. It holds loyalty-panel purchases, products, "
+     "households, campaigns, coupons and in-store promotions."),
+]
+
+# Requests to change data, or to override the rules. Refused before planning.
+BLOCKED = re.compile(
+    r"\b(delete|drop|truncate|insert|update|alter|overwrite|modify|wipe)\b.*\b(table|rows?|data|sales|records?|warehouse)\b"
+    r"|\bignore (all |the |your |previous |prior )*(instructions|rules)\b|\bdisable (the )?(guard|safety)\b",
+    re.IGNORECASE,
+)
+
+# Findings whose caveat must accompany related answers, so associations and proxies
+# are never presented as proven effects.
+CAVEAT_TOPICS = [(r"coupon", "coupon_habitual"), (r"campaign", "campaign_effect"),
+                 (r"display|mailer|promotion|lift", "promotion_lift"), (r"rfm|segment|at[- ]risk|champion",
+                                                                       "customer_value"),
+                 (r"bought together|affinity|basket", "basket_affinity")]
+
+
+def unsupported_reason(question: str) -> str | None:
+    for pattern, reason in UNSUPPORTED:
+        if re.search(pattern, question, re.IGNORECASE):
+            return reason
+    return None
+
+
+@lru_cache(maxsize=1)
+def _findings() -> dict[str, dict]:
+    path = PROJECT_ROOT / "reports" / "findings.json"
+    if not path.exists():
+        return {}
+    return {f["id"]: f for f in json.loads(path.read_text(encoding="utf-8"))}
+
+
+def caveat_for(question: str) -> dict | None:
+    for pattern, finding_id in CAVEAT_TOPICS:
+        if re.search(pattern, question, re.IGNORECASE) and finding_id in _findings():
+            return _findings()[finding_id]
+    return None
+
+
 def route(question: str) -> str:
     q = question.lower().strip()
+    if BLOCKED.search(q):
+        return "blocked"
+    if unsupported_reason(q):
+        return "unsupported"
     if re.match(r"^(hi|hello|hey|thanks|thank you)\b", q):
         return "none"
     definitional = re.search(r"\b(what (is|does|are) (a |an |the )?(\w+ )?(mean|definition)|define|"
@@ -157,8 +215,8 @@ def _department(question: str) -> str | None:
     return None
 
 
-def plan_sql(question: str) -> tuple[str, str]:
-    """Return (sql, source label) for a metric question, offline."""
+def plan_sql(question: str) -> tuple[str, str] | None:
+    """Return (sql, source label) for a metric question, or None if no approved query fits."""
     q = question.lower()
     top = re.search(r"\btop\s+(\d+)\b", q)
     limit = min(int(top.group(1)), 50) if top else 10
@@ -199,8 +257,15 @@ def plan_sql(question: str) -> tuple[str, str]:
         if re.search(pattern, q):
             analysis = get_analysis(key)
             return analysis.sql, f"SQL library: {analysis.path.name}"
-    analysis = get_analysis("kpi_by_quarter")
-    return analysis.sql, f"SQL library: {analysis.path.name}"
+    if re.search(r"\b(sales|revenue|spend)\b", q) and not re.search(r"\b(by|per|which|who|where)\b", q):
+        analysis = get_analysis("kpi_by_quarter")  # plain "what were sales" -> headline KPIs
+        return analysis.sql, f"SQL library: {analysis.path.name}"
+    return None  # no approved query fits: say so rather than guess
+
+
+APPROVED_TOPICS = ("sales by quarter, week or department; top products and categories; RFM segments; "
+                   "customer concentration; demographics; deal dependence; own-brand opportunity; "
+                   "campaigns; coupon redemptions; promotion lift; items bought together; shopping times")
 
 
 # --- optional LLM path ----------------------------------------------------------
@@ -243,6 +308,11 @@ def _takeaway(columns: list[str], rows: list[dict[str, Any]]) -> str:
     metric = preferred[0] if preferred else (numeric[0] if numeric else None)
     if metric is None:
         return f"The query returned {len(rows)} rows."
+    if "quarter" in columns and metric == "net_sales":
+        total = sum(r["net_sales"] for r in rows)
+        best = max(rows, key=lambda r: r["net_sales"])
+        return (f"2017 merchandise sales were ${total:,.2f} across {len(rows)} quarters; "
+                f"{best['quarter']} was the largest (${best['net_sales']:,.2f}).")
     if len(rows) == 1 or not labels:
         parts = [f"{c.replace('_', ' ')} = {rows[0][c]:,.2f}" for c in numeric[:4] if rows[0][c] is not None]
         return "; ".join(parts) + "."
@@ -276,6 +346,15 @@ def ask(question: str) -> CopilotResult:
     if result.route == "none":
         parts.append("Ask me about sales, departments, households, campaigns, coupons, "
                      "promotions or how a metric is defined.")
+    elif result.route == "blocked":
+        parts.append("I can't do that. The copilot is read-only: it runs single SELECT queries on "
+                     "approved warehouse tables, and the database connection cannot write, read files "
+                     "or change settings.")
+        result.sources.append("Policy: src/retail/sql_guard.py")
+    elif result.route == "unsupported" and unsupported_reason(question):
+        parts.append(f"I can't answer that from this data. {unsupported_reason(question)} "
+                     f"I can answer questions about: {APPROVED_TOPICS}.")
+        result.sources.append("docs/data_dictionary.md")
 
     if result.route in {"sql", "both"}:
         try:
@@ -288,14 +367,29 @@ def ask(question: str) -> CopilotResult:
                     sql = _llm_sql(question, error=str(exc))
                     data = execute_readonly_query(sql, max_rows=200)
             else:
-                sql, label = plan_sql(question)
+                plan = plan_sql(question)
+                if plan is None:
+                    result.route = "unsupported"
+                    raise LookupError("no approved query")
+                sql, label = plan
                 data = execute_readonly_query(sql, max_rows=200)
             result.sql, result.columns, result.rows = data.sql, data.columns, data.rows
             result.sources.append(label)
             parts += ["**Answer:** " + _takeaway(data.columns, data.rows), "", data.to_markdown(max_rows=15)]
+        except LookupError:
+            parts.append("I can't map this question to an approved analysis, so I won't guess. "
+                         f"I can answer questions about: {APPROVED_TOPICS}.")
         except Exception as exc:
             result.error = str(exc)
             parts.append(f"I could not run the warehouse query: {exc}")
+
+    finding = caveat_for(question) if result.rows else None
+    if finding:
+        if result.route == "both":  # "does X work / why" questions lead with the conclusion
+            parts.insert(0, f"**Bottom line:** {finding['title']}. {finding['evidence']}\n")
+        parts += ["", f"**How far this can be trusted:** {finding['confidence']}. {finding['caveat']}"]
+        if "reports/findings.json" not in result.sources:
+            result.sources.append("reports/findings.json")
 
     if result.route in {"docs", "both"}:
         hits = search_docs(question, k=2 if result.route == "both" else 3)
@@ -310,7 +404,9 @@ def ask(question: str) -> CopilotResult:
                 if source not in result.sources:
                     result.sources.append(source)
         elif result.route == "docs":
-            parts.append("I could not find this in the documentation.")
+            result.route = "unsupported"
+            parts.append("I couldn't find this in the approved analyses or the documentation, so I "
+                         f"won't guess. I can answer questions about: {APPROVED_TOPICS}.")
 
     sources = result.sources or ["No source"]
     result.answer = "\n".join(parts).strip() + "\n\n**Sources:**\n" + "\n".join(f"- {s}" for s in sources)

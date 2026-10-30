@@ -1,0 +1,57 @@
+{
+  "_about": "DAX measure values returned by the live Power BI model (Retail_Analytics.pbip, Power BI Desktop 2.153) on 2026-10-28 after a full refresh. Compared with SQL by `python -m retail.reconcile`.",
+  "total": {
+    "Net Sales": 4198539.710000003,
+    "Baskets": 141180,
+    "Households": 2467,
+    "Avg Basket Value": 29.738912806346526,
+    "Discount Rate %": 0.1573237477549925,
+    "Private Label Share %": 0.21558455618370193,
+    "Promo Sales Share %": 0.4683304329161619,
+    "Top 10% Household Share": 0.3417654968422339,
+    "Repeat Household Rate %": 0.9874341305229023,
+    "Baskets per Household": 57.22740170247264,
+    "Scored Redemptions": 2046,
+    "Habitual Redemptions": 1036,
+    "Habitual Redemption %": 0.5063538611925709
+  },
+  "q4": {
+    "Net Sales": 1100662.2999999977,
+    "Net Sales QoQ %": 0.0621363726560197,
+    "Avg Basket QoQ %": 0.07403848793050427
+  },
+  "rfm_segment": {
+    "1. Champions": {"Households": 513, "Segment Sales Share %": 0.4568674735721274},
+    "2. Loyal": {"Households": 648, "Segment Sales Share %": 0.287168097309713},
+    "3. At risk": {"Households": 318, "Segment Sales Share %": 0.1342061976115098},
+    "4. New / occasional": {"Households": 165, "Segment Sales Share %": 0.02790056498001059},
+    "5. Lapsed": {"Households": 670, "Segment Sales Share %": 0.07187539736286667},
+    "6. Needs attention": {"Households": 153, "Segment Sales Share %": 0.021982269163772664}
+  },
+  "deal_segment": {
+    "1. Full-price (<25% on deal)": {"Households": 106, "Segment Sales Share %": 0.01773824594837553},
+    "2. Balanced (25-40%)": {"Households": 562, "Segment Sales Share %": 0.24488884017245757},
+    "3. Deal-leaning (40-55%)": {"Households": 1200, "Segment Sales Share %": 0.5165506651835765},
+    "4. Deal-dependent (55%+)": {"Households": 599, "Segment Sales Share %": 0.2208222486955904}
+  },
+  "habitual_by_type": {
+    "Type A": 0.5454005934718101,
+    "Type B": 0.33666666666666667,
+    "Type C": 0.26229508196721313
+  },
+  "department": {
+    "GROCERY": {"Net Sales": 2316393.890000231, "Product Penetration %": 0.9955447549615228,
+                "Private Label Share %": 0.2709205859629993, "Discount Rate %": 0.16493342669779754},
+    "DRUG GM": {"Net Sales": 596827.4499999011, "Product Penetration %": 0.9736735520453625,
+                "Private Label Share %": 0.09670756598077015, "Discount Rate %": 0.09009256388262447},
+    "PRODUCE": {"Net Sales": 322858.82000001386, "Product Penetration %": 0.9518023491292021,
+                "Private Label Share %": 0.13369840724809168, "Discount Rate %": 0.11526217243089455},
+    "MEAT": {"Net Sales": 308575.3299999981, "Product Penetration %": 0.8809234507897934,
+             "Private Label Share %": 0.048705902704535994, "Discount Rate %": 0.25001351955063106}
+  },
+  "promotion_lift": {
+    "Display + mailer": 2.248,
+    "Display only": 1.292,
+    "Mailer only": 1.311
+  }
+}

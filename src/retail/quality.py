@@ -108,6 +108,11 @@ CHECKS: tuple[Check, ...] = (
     Check("Unique promotion key",
           "SELECT COUNT(*) - COUNT(DISTINCT (product_id, store_id, week)) FROM fct_promotions",
           "error", "One promotion row per product x store x week after merging."),
+    Check("Every shopping household has one segment row",
+          "SELECT ABS((SELECT COUNT(DISTINCT household_id) FROM fct_sales WHERE is_merch)"
+          " - (SELECT COUNT(*) FROM mart_household_segments))"
+          " + (SELECT COUNT(*) - COUNT(DISTINCT household_id) FROM mart_household_segments)",
+          "error", "RFM and deal segments cover each merchandise household exactly once."),
     Check("Products without a category",
           "SELECT COUNT(*) FROM dim_product WHERE product_category = 'UNCATEGORIZED'", "warn",
           "Shown as UNCATEGORIZED in category views.", max_allowed=1_000),

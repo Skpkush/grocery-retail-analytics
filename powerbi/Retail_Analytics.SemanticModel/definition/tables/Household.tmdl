@@ -48,12 +48,52 @@ table Household
 		sourceColumn: age
 		sortByColumn: age_order
 
+	/// RFM segment from mart_household_segments (quintile scores, snapshot 2018-01-01).
+	column rfm_segment
+		dataType: string
+		lineageTag: f1656a9c-cd8a-4b2a-b3d7-5004b59b90f0
+		sourceColumn: rfm_segment
+
+	/// Share of the household's merchandise spend bought with a loyalty discount.
+	column deal_segment
+		dataType: string
+		lineageTag: 6a685b4b-e77d-4b84-b69b-d0daaaa633f0
+		sourceColumn: deal_segment
+
+	/// Days from last trip to 2018-01-01.
+	column recency_days
+		dataType: int64
+		lineageTag: 54fec325-0b2f-4fa0-884b-b48df2dc2f03
+		summarizeBy: none
+		sourceColumn: recency_days
+
+	column r_score
+		dataType: int64
+		isHidden
+		lineageTag: 3d178361-68bd-4b0a-8664-7a6622aedcac
+		summarizeBy: none
+		sourceColumn: r_score
+
+	column f_score
+		dataType: int64
+		isHidden
+		lineageTag: 6f7c451c-4724-4877-b90d-e535c5366a8f
+		summarizeBy: none
+		sourceColumn: f_score
+
+	column m_score
+		dataType: int64
+		isHidden
+		lineageTag: c6a64f34-60df-4836-8af7-fe40119107f3
+		summarizeBy: none
+		sourceColumn: m_score
+
 	partition Household = m
 		mode: import
 		source =
 				let
 				    Source = Parquet.Document(File.Contents(DataFolder & "dim_household.parquet")),
-				    Typed = Table.TransformColumnTypes(Source, {{"household_id", type text}, {"has_demographics", type logical}, {"age", type text}, {"age_order", Int64.Type}, {"income_band", type text}, {"household_comp", type text}, {"household_size", type text}, {"campaigns_received", Int64.Type}})
+				    Typed = Table.TransformColumnTypes(Source, {{"household_id", type text}, {"has_demographics", type logical}, {"age", type text}, {"age_order", Int64.Type}, {"income_band", type text}, {"household_comp", type text}, {"household_size", type text}, {"campaigns_received", Int64.Type}, {"rfm_segment", type text}, {"deal_segment", type text}, {"recency_days", Int64.Type}, {"r_score", Int64.Type}, {"f_score", Int64.Type}, {"m_score", Int64.Type}})
 				in
 				    Typed
 

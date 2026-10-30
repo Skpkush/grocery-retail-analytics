@@ -36,12 +36,31 @@ table 'Coupon Redemptions'
 
 		annotation SummarizationSetBy = Automatic
 
+	column redemption_id
+		dataType: int64
+		isHidden
+		lineageTag: e6525459-a25a-4b05-9f24-8f9a561b7782
+		summarizeBy: none
+		sourceColumn: redemption_id
+
+	/// TRUE when the redemption has a full 56-day look-back (on/after 26 Feb 2017).
+	column is_scored
+		dataType: boolean
+		lineageTag: 8363e358-2eef-4e53-ab51-ee0690511f80
+		sourceColumn: is_scored
+
+	/// Household bought a product covered by the coupon in the 56 days before redeeming.
+	column is_habitual
+		dataType: boolean
+		lineageTag: 1fb45a5b-5214-4262-acfd-58e9024b6c9b
+		sourceColumn: is_habitual
+
 	partition 'Coupon Redemptions' = m
 		mode: import
 		source =
 				let
 				    Source = Parquet.Document(File.Contents(DataFolder & "fct_coupon_redemptions.parquet")),
-				    Typed = Table.TransformColumnTypes(Source, {{"household_id", type text}, {"coupon_upc", type text}, {"campaign_id", type text}, {"campaign_type", type text}, {"redemption_date", type date}})
+				    Typed = Table.TransformColumnTypes(Source, {{"redemption_id", Int64.Type}, {"household_id", type text}, {"coupon_upc", type text}, {"campaign_id", type text}, {"campaign_type", type text}, {"redemption_date", type date}, {"is_scored", type logical}, {"is_habitual", type logical}})
 				in
 				    Typed
 

@@ -18,4 +18,9 @@ ref table Household
 ref table Date
 ref table 'Coupon Redemptions'
 ref table 'Campaign Targets'
+ref table 'Basket Affinity'
+ref table 'Promotion Lift'
+ref table 'Campaign Tests'
+
+ref cultureInfo en-US
 

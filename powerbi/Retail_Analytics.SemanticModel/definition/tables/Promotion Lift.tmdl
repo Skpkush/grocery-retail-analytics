@@ -1,0 +1,62 @@
+/// Display / mailer sales lift vs the same product x store in unpromoted weeks, with bootstrap 95% CI (reports/stats_results.json). Upper bound: promotions are not randomly assigned.
+table 'Promotion Lift'
+	lineageTag: ff38d8af-056b-46b3-bbfc-fde3a39d6caf
+
+	/// Sales lift vs the same product x store in unpromoted weeks (upper bound; not randomised).
+	measure 'Promotion Lift %' = DIVIDE ( MAX ( 'Promotion Lift'[lift_pct] ), 100 )
+		formatString: 0%
+		displayFolder: Promotions
+		lineageTag: 1a6108f0-ef92-4afc-a637-e91430c2f2c8
+
+	measure 'Lift CI Low %' = DIVIDE ( MAX ( 'Promotion Lift'[ci_low_pct] ), 100 )
+		formatString: 0%
+		displayFolder: Promotions
+		lineageTag: 6ec3e066-ecf8-45da-9118-b958dc75adbb
+
+	measure 'Lift CI High %' = DIVIDE ( MAX ( 'Promotion Lift'[ci_high_pct] ), 100 )
+		formatString: 0%
+		displayFolder: Promotions
+		lineageTag: a6fa442a-1524-453c-8c5a-3afb0a402b8a
+
+	column promotion
+		dataType: string
+		lineageTag: 01951dd4-b7aa-4494-8c2a-57c8dccc0bb6
+		sourceColumn: promotion
+
+	column lift_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: e9ae5342-16b8-4ef3-9a2e-fb7c04c6c7d5
+		summarizeBy: none
+		sourceColumn: lift_pct
+
+	column ci_low_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: 15d68013-d911-4bd1-b25f-0351246881d7
+		summarizeBy: none
+		sourceColumn: ci_low_pct
+
+	column ci_high_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: eadb0997-75b0-41f9-ba54-a480d85874a3
+		summarizeBy: none
+		sourceColumn: ci_high_pct
+
+	column product_store_pairs
+		dataType: int64
+		formatString: #,0
+		lineageTag: d4b3e9f9-f257-4be9-8a48-020ee8d7d3f2
+		summarizeBy: none
+		sourceColumn: product_store_pairs
+
+	partition 'Promotion Lift' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "promotion_lift.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"promotion", type text}, {"lift_pct", type number}, {"ci_low_pct", type number}, {"ci_high_pct", type number}, {"product_store_pairs", Int64.Type}})
+				in
+				    Typed
+

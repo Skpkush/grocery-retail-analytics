@@ -1,0 +1,66 @@
+/// Difference-in-differences campaign effect and placebo (pre-launch) test per campaign type, household-clustered 95% CI.
+table 'Campaign Tests'
+	lineageTag: 361270e8-ecb2-4954-96a6-5b6b965ba38f
+
+	/// Amber background for significant placebo rows (the effect cannot be identified).
+	measure 'Color Placebo Highlight' = IF ( SELECTEDVALUE ( 'Campaign Tests'[test] ) = "Placebo (pre-launch)" && SELECTEDVALUE ( 'Campaign Tests'[significant] ) = TRUE (), "#FEF3C7", "#FFFFFF" )
+		displayFolder: Formatting
+		lineageTag: 07454168-1ba2-4b76-8d27-8c95849f8700
+
+	/// Font colour for the effect column: red negative, green positive.
+	measure 'Color Effect' = IF ( SELECTEDVALUE ( 'Campaign Tests'[effect_per_household_week] ) < 0, "#B91C1C", "#15803D" )
+		displayFolder: Formatting
+		lineageTag: 21ca7ae7-8987-429d-9a67-06e96794b200
+
+	column campaign_type
+		dataType: string
+		lineageTag: c45936de-2e22-4de2-a07e-42893395ec73
+		sourceColumn: campaign_type
+
+	column test
+		dataType: string
+		lineageTag: 76240a47-6660-4a33-a3c3-d8da3a23b100
+		sourceColumn: test
+
+	column effect_per_household_week
+		dataType: double
+		formatString: \$#,0.00;-\$#,0.00
+		lineageTag: ce5ea44d-02a4-4997-b848-12e7955f795c
+		summarizeBy: none
+		sourceColumn: effect_per_household_week
+
+	column ci_low
+		dataType: double
+		formatString: 0.00
+		lineageTag: 7faefa31-aa25-440b-81fc-7163af8c1402
+		summarizeBy: none
+		sourceColumn: ci_low
+
+	column ci_high
+		dataType: double
+		formatString: 0.00
+		lineageTag: e2391190-eb03-4c97-a9c0-94a2f11a51f3
+		summarizeBy: none
+		sourceColumn: ci_high
+
+	column p_value
+		dataType: double
+		formatString: 0.0000
+		lineageTag: 1b89de9d-ef06-49a4-af77-0e0c984f52de
+		summarizeBy: none
+		sourceColumn: p_value
+
+	column significant
+		dataType: boolean
+		lineageTag: 0b392648-0894-426c-9690-9499cd5b937b
+		sourceColumn: significant
+
+	partition 'Campaign Tests' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "campaign_tests.parquet")),
+				    Typed = Table.TransformColumnTypes(Source, {{"campaign_type", type text}, {"test", type text}, {"effect_per_household_week", type number}, {"ci_low", type number}, {"ci_high", type number}, {"p_value", type number}, {"significant", type logical}})
+				in
+				    Typed
+
