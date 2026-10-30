@@ -12,7 +12,9 @@ Streamlit app.
 ![Power BI](https://img.shields.io/badge/Power%20BI-DAX%20%2B%20PBIP-F2C811?logo=powerbi&logoColor=black)
 ![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
 
-![Overview page: Q4 KPIs and findings with evidence, action and caveat](docs/images/streamlit_overview.png)
+![Power BI Executive Overview: Q4 2017 KPIs vs Q3, weekly sales trend and quarter detail](docs/images/powerbi_1_executive_overview.png)
+
+*Power BI report, page 1 of 5. All pages are shown in the [Power BI report](#power-bi-report) section below.*
 
 ## Business problem
 
@@ -57,14 +59,49 @@ Generated from the data by `python -m retail.findings`. The full text is in
 [`powerbi/Retail_Analytics.pbip`](powerbi/Retail_Analytics.pbip) has five business pages
 and a drill-through page:
 
-| Page | What it answers |
-|---|---|
-| 1. Executive Overview | Q4 net sales, transactions, basket value, households and discount rate vs Q3; weekly trend with 4-week rolling average |
-| 2. Customer Analytics | RFM segments (share of sales, sales per household), repeat behaviour, top-10% concentration, income and household composition |
-| 3. Product Analytics | Department and category contribution, reach (penetration) and own-brand share; categories bought together; top product types |
-| 4. Promotion Effectiveness | Deal dependence, coupon redemptions by existing buyers, promotion lift with CIs, campaign impact test with placebo |
-| 5. Business Recommendations | The five findings above with action, caveat and confidence, plus limitations |
-| Department Detail | Drill-through: right-click a department to open its trend, categories, penetration and own-brand share |
+### 1. Executive Overview: *How is the business performing this quarter?*
+
+![Executive Overview](docs/images/powerbi_1_executive_overview.png)
+
+- **KPI cards for Q4 2017:** net sales **$1.10M**, **35,428** transactions, **$31.07** average basket, 2,320 households and a 15.1% discount rate.
+- **Change vs Q3:** green means better and red means worse. The discount rate is reversed, because a lower rate is good.
+- **The story:** sales grew **+6.2%** while transactions fell **−1.1%**, so the growth came from bigger baskets (**+7.4%**), not more trips.
+- **Weekly trend:** columns for weekly sales with a 4-week rolling average line (amber). The quarter table carries a sales gradient.
+
+### 2. Customer Analytics: *Which customers drive value?*
+
+![Customer Analytics](docs/images/powerbi_2_customer_analytics.png)
+
+- **RFM segments:** **Champions** (teal) are 21% of households but generate **45.7%** of sales. **At risk** (amber) frequent shoppers still hold **13.4%**.
+- **Concentration and loyalty:** the top 10% of households drive **34.2%** of sales, and 98.7% of households shop more than once.
+- **Demographics** (801 surveyed households): 125K+ income households spend about $4.3K a year, against $2.6K for under-35K households.
+
+### 3. Product Analytics: *What sells, how widely, and what is bought together?*
+
+![Product Analytics](docs/images/powerbi_3_product_analytics.png)
+
+- **Departments:** Grocery is 55% of sales. The category table shows each category's share of sales, its reach (penetration) and its own-brand share.
+- **Bought together:** onions + potatoes are bought together **4.6x** more often than chance, which suggests meal-bundle promotions.
+- **Drill-through:** right-click any department bar → **Drill through → Department Detail** (a hidden page with a Back button).
+
+### 4. Promotion Effectiveness: *Do discounts, coupons and promotions drive extra sales?*
+
+![Promotion Effectiveness](docs/images/powerbi_4_promotion_effectiveness.png)
+
+- **Deal dependence:** **46.8%** of sales are sold on a loyalty discount, and 74% of sales come from deal-leaning or deal-dependent households.
+- **Coupons:** **50.6%** of coupon redemptions came from households already buying the product (54.5% for Type A campaigns).
+- **Promotion lift:** a display plus a mailer is linked to **+225%** sales (95% CI in the subtitle). This is an upper bound, not a causal effect.
+- **Campaign impact test:** amber rows are failed placebo checks. Targeted households were already declining before launch, so campaign ROI can't be measured yet.
+
+### 5. Business Recommendations: *What should management do, and how sure can we be?*
+
+![Business Recommendations](docs/images/powerbi_5_business_recommendations.png)
+
+- **Five findings,** each with evidence, the recommended action, the caveat and a confidence level.
+- **Colour bars** show confidence: **teal** for high, **amber** for moderate, **grey** for "cannot conclude".
+- **Limitations box:** a panel of households rather than store totals, one year of data, no costs, and no randomisation.
+
+### Model and design
 
 - **The model** is a star schema: a Sales fact with Product, Household and Date dimensions (Date is marked as the date table), plus coupon, campaign and results tables. It holds **44 DAX measures** in display folders (37 business measures plus 7 conditional-formatting colour measures), every chart carries a tooltip with supporting measures, and **the report is generated from code** ([`powerbi/tools/build_report.py`](powerbi/tools/build_report.py)), so the layout is reviewable in a diff.
 - **Reconciled with SQL: 58 of 58 values match.** Each Power BI measure value was captured from the live model and recomputed independently in SQL. See [`reports/reconciliation.md`](reports/reconciliation.md); a test repeats the comparison on every run.
@@ -72,6 +109,8 @@ and a drill-through page:
   - A `CALCULATE` filter argument that ignored row context, which inflated a redemption rate from 6.5% to 83%.
   - An off-by-one top-10% decile.
   - A name clash between a measure and a column.
+
+- **Design system:** a custom theme ([`powerbi/theme/grocery_retail_theme.json`](powerbi/theme/grocery_retail_theme.json)) and a full page-by-page specification ([`docs/powerbi_design_guide.md`](docs/powerbi_design_guide.md)).
 
 To open it: run the pipeline, open the `.pbip` in Power BI Desktop, set the `DataFolder`
 parameter (Transform data → Manage parameters) to your `powerbi/data/` folder, then
