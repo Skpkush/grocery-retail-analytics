@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "limitations",
   "position": {
-    "x": 658,
-    "y": 516,
+    "x": 657.51014530697728,
+    "y": 518.76947244403709,
     "z": 13000,
-    "width": 602,
-    "height": 186,
+    "height": 185.79185757298075,
+    "width": 602.01387616180125,
     "tabOrder": 13000
   },
   "visual": {
