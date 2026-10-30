@@ -66,7 +66,7 @@ and a drill-through page:
 | 5. Business Recommendations | The five findings above with action, caveat and confidence, plus limitations |
 | Department Detail | Drill-through: right-click a department to open its trend, categories, penetration and own-brand share |
 
-- **The model** is a star schema: a Sales fact with Product, Household and Date dimensions (Date is marked as the date table), plus coupon, campaign and results tables. It holds **37 DAX measures** in display folders, every chart carries a tooltip with supporting measures, and **the report is generated from code** ([`powerbi/tools/build_report.py`](powerbi/tools/build_report.py)), so the layout is reviewable in a diff.
+- **The model** is a star schema: a Sales fact with Product, Household and Date dimensions (Date is marked as the date table), plus coupon, campaign and results tables. It holds **44 DAX measures** in display folders (37 business measures plus 7 conditional-formatting colour measures), every chart carries a tooltip with supporting measures, and **the report is generated from code** ([`powerbi/tools/build_report.py`](powerbi/tools/build_report.py)), so the layout is reviewable in a diff.
 - **Reconciled with SQL: 58 of 58 values match.** Each Power BI measure value was captured from the live model and recomputed independently in SQL. See [`reports/reconciliation.md`](reports/reconciliation.md); a test repeats the comparison on every run.
 - **Verification caught three DAX bugs, all fixed:**
   - A `CALCULATE` filter argument that ignored row context, which inflated a redemption rate from 6.5% to 83%.

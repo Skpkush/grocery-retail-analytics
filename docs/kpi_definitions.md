@@ -223,6 +223,13 @@ DIVIDE ( CALCULATE ( [Net Sales], Sales[retail_disc] > 0 ), [Net Sales] )
 | Baskets QoQ % | `VAR Prior = CALCULATE ( [Baskets], DATEADD ( 'Date'[date_key], -1, QUARTER ) ) RETURN DIVIDE ( [Baskets] - Prior, Prior )` |
 | Baskets per Household | `DIVIDE ( [Baskets], [Households] )` |
 | Category Sales Share % | `DIVIDE ( [Net Sales], CALCULATE ( [Net Sales], REMOVEFILTERS ( Product ) ) )` |
+| Color Basket Value QoQ | `IF ( [Avg Basket QoQ %] >= 0, "#15803D", "#B91C1C" )` |
+| Color Baskets QoQ | `IF ( [Baskets QoQ %] >= 0, "#15803D", "#B91C1C" )` |
+| Color Discount Change | `IF ( [Discount Rate Change pts] <= 0, "#15803D", "#B91C1C" )` |
+| Color Effect | `IF ( SELECTEDVALUE ( 'Campaign Tests'[effect_per_household_week] ) < 0, "#B91C1C", "#15803D" )` |
+| Color Placebo Highlight | `IF ( SELECTEDVALUE ( 'Campaign Tests'[test] ) = "Placebo (pre-launch)" && SELECTEDVALUE ( 'Campaign Tests'[significant] ) = TRUE (), "#FEF3C7", "#FFFFFF" )` |
+| Color RFM Segment | `SWITCH ( SELECTEDVALUE ( Household[rfm_segment] ), "1. Champions", "#0F766E", "3. At risk", "#D97706", "#94A3B8" )` |
+| Color Sales QoQ | `IF ( [Net Sales QoQ %] >= 0, "#15803D", "#B91C1C" )` |
 | Discount Rate Change pts | `VAR Prior = CALCULATE ( [Discount Rate %], DATEADD ( 'Date'[date_key], -1, QUARTER ) ) RETURN IF ( NOT ISBLANK ( Prior ), ( [Discount Rate %] - Prior ) * 100 )` |
 | Habitual Redemption % | `DIVIDE ( [Habitual Redemptions], [Scored Redemptions] )` |
 | Habitual Redemptions | `CALCULATE ( COUNTROWS ( 'Coupon Redemptions' ), 'Coupon Redemptions'[is_scored] = TRUE (), 'Coupon Redemptions'[is_habitual] = TRUE () )` |
@@ -243,4 +250,4 @@ DIVIDE ( CALCULATE ( [Net Sales], Sales[retail_disc] > 0 ), [Net Sales] )
 | Top 10% Household Share | `VAR HH = FILTER ( ADDCOLUMNS ( VALUES ( Sales[household_id] ), "@s", [Net Sales] ), NOT ISBLANK ( [@s] ) ) VAR N = INT ( 0.1 * COUNTROWS ( HH ) ) VAR TopHH = TOPN ( N, HH, [@s], DESC ) RETURN DIVIDE ( SUMX ( TopHH, [@s] ), SUMX ( HH, [@s] ) )` |
 | WoW Growth % | `VAR Wk = MAX ( 'Date'[retail_week] ) VAR Prior = CALCULATE ( [Net Sales], REMOVEFILTERS ( 'Date' ), 'Date'[retail_week] = Wk - 1 ) RETURN IF ( HASONEVALUE ( 'Date'[retail_week] ), DIVIDE ( [Net Sales] - Prior, Prior ) )` |
 
-The model has **37 measures** in total.
+The model has **44 measures** in total.

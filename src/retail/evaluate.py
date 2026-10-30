@@ -11,7 +11,7 @@ import json
 import os
 import statistics
 
-from retail.config import PROJECT_ROOT, REPORTS_DIR
+from retail.config import PROJECT_ROOT, REPORTS_DIR, skipped_tables
 
 GOLDEN_PATH = PROJECT_ROOT / "evals" / "golden_questions.json"
 RESULTS_PATH = REPORTS_DIR / "eval_results.md"
@@ -23,6 +23,8 @@ def evaluate() -> tuple[list[dict], dict]:
 
     results = []
     for case in json.loads(GOLDEN_PATH.read_text(encoding="utf-8")):
+        if case.get("requires") in skipped_tables():
+            continue  # the source table this case needs was not loaded (e.g. CI skips promotions)
         r = ask(case["question"])
         fails = []
         if r.route != case["expected_route"]:

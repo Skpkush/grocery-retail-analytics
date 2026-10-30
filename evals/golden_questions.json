@@ -24,7 +24,7 @@
    "expected_sources": ["methodology.md"], "must_contain": ["placebo", "Cannot conclude"]},
   {"id": "promo-lift", "question": "What is the promotion lift for display and mailer?",
    "expected_route": "both", "expected_sources": ["11_promotion_lift.sql"],
-   "must_contain": ["not a causal lift"]},
+   "must_contain": ["not a causal lift"], "requires": "promotions"},
   {"id": "total-sales", "question": "What were total sales?", "expected_route": "sql",
    "expected_sources": ["01_kpi_by_quarter.sql"], "must_contain": ["2017 merchandise sales were"]},
   {"id": "unsupported-margin", "question": "What is our profit margin by department?",
