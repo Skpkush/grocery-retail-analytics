@@ -1,0 +1,51 @@
+name: Data pipeline
+
+# Full pipeline on the real dataset, integration tests and the copilot eval gate.
+# Skipped when only presentation files change (README, screenshots, design guide,
+# Power BI layout): they cannot affect the data, the SQL or the tests.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - "docs/images/**"
+      - "docs/powerbi_design_guide.md"
+      - "powerbi/**"
+  pull_request:
+    paths-ignore:
+      - "README.md"
+      - "docs/images/**"
+      - "docs/powerbi_design_guide.md"
+      - "powerbi/**"
+  workflow_dispatch:  # run it by hand from the Actions tab when needed
+
+concurrency:
+  group: data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  data:
+    name: Pipeline on real data + integration tests + eval gate
+    runs-on: ubuntu-latest
+    env:
+      RETAIL_OFFLINE: "1"
+      # The 20.9M-row promotions file needs several GB of RAM to load; skip it on CI.
+      RETAIL_SKIP_TABLES: promotions
+    steps:
+      - uses: actions/checkout@v4
+      # No pip cache: the ~220 MB cache download counted against the account's
+      # cache egress limit; installing from PyPI is only slightly slower.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - name: Cache source files (about 14 MB without promotions)
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: completejourney-raw-v1
+      - name: Extract, land, transform, quality gate, stats, report
+        run: PYTHONPATH=src python -m retail.pipeline
+      - run: pytest -q
+      - name: Copilot evaluation gate (fail below 90%)
+        run: PYTHONPATH=src python -m retail.evaluate --min 0.9
