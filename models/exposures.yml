@@ -1,0 +1,54 @@
+version: 2
+
+# Exposures: the things outside dbt that read these models. They appear at the
+# end of the lineage graph, so a change to a model shows which report it affects.
+
+exposures:
+  - name: power_bi_retail_report
+    label: Grocery Retail Power BI report
+    type: dashboard
+    maturity: high
+    url: https://github.com/Skpkush/grocery-retail-analytics/tree/main/powerbi
+    description: >
+      Five-page Power BI report (Executive Overview, Customer Analytics, Product
+      Analytics, Promotion Effectiveness, Business Recommendations) with 44 DAX
+      measures. src/retail/export_powerbi.py exports these models to Parquet;
+      58 report values are reconciled against SQL in reports/reconciliation.md.
+      The campaign test and promotion lift tables come from src/retail/stats.py,
+      which reads fct_campaign_spend_panel and fct_promotions.
+    depends_on:
+      - ref('fct_sales')
+      - ref('dim_product')
+      - ref('dim_household')
+      - ref('dim_date')
+      - ref('mart_rfm_segments')
+      - ref('mart_coupon_redemptions')
+      - ref('fct_campaign_targets')
+      - ref('mart_basket_affinity')
+      - ref('fct_campaign_spend_panel')
+      - ref('fct_promotions')
+    owner:
+      name: Sumit Kumar Prajapat
+      email: sumitkprajapat29@gmail.com
+
+  - name: streamlit_app
+    label: Streamlit analytics app
+    type: application
+    maturity: medium
+    url: https://grocery-retail-analytics-gej2xcqxwhwypm7lvjhher.streamlit.app/
+    description: >
+      Interactive version of the analysis with a read-only SQL runner and an
+      "ask the data" assistant that answers only from the dbt analyses and docs.
+    depends_on:
+      - ref('fct_sales')
+      - ref('fct_baskets')
+      - ref('dim_product')
+      - ref('dim_household')
+      - ref('dim_date')
+      - ref('mart_rfm_segments')
+      - ref('mart_coupon_redemptions')
+      - ref('mart_basket_affinity')
+      - ref('mart_campaign_did')
+    owner:
+      name: Sumit Kumar Prajapat
+      email: sumitkprajapat29@gmail.com
