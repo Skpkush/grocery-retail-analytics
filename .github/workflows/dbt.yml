@@ -1,0 +1,38 @@
+name: dbt build
+
+# Builds and tests every dbt model on the small committed sample (sample_data/,
+# about 5,900 transaction lines from 9 households) on every push. The full
+# 1.46M-row dataset is never committed; data-pipeline.yml runs on it instead.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: dbt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dbt:
+    name: dbt build on the CI sample
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dbt-core and dbt-duckdb
+        run: pip install "dbt-core>=1.10,<2" "dbt-duckdb>=1.9,<2"
+      - run: dbt deps
+      - name: Build and test all models, tests and unit tests
+        run: dbt build --target ci
+      - name: Check the docs site compiles
+        run: dbt docs generate --target ci
+      - name: Keep the dbt results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-results
+          path: |
+            target/run_results.json
+            target/manifest.json
+          retention-days: 7

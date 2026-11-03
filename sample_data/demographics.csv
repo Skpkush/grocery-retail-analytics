@@ -1,0 +1,5 @@
+household_id,age,income,home_ownership,marital_status,household_size,household_comp,kids_count
+109,25-34,15-24K,Homeowner,Married,2,1 Adult Kids,1
+1397,45-54,35-49K,Renter,Unmarried,1,1 Adult No Kids,0
+492,45-54,50-74K,Homeowner,,2,2 Adults No Kids,0
+770,25-34,50-74K,Homeowner,Married,5+,2 Adults Kids,3+
