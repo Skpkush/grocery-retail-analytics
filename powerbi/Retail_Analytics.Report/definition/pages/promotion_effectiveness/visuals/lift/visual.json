@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "lift",
   "position": {
-    "x": 860,
-    "y": 190,
+    "x": 860.38024087505664,
+    "y": 189.36598602991677,
     "z": 8000,
-    "height": 235,
-    "width": 400,
+    "height": 487.13713797551048,
+    "width": 399.31523141091145,
     "tabOrder": 8000
   },
   "visual": {
@@ -387,5 +387,65 @@
       ]
     },
     "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "a7200427bc415969c005",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Promotion Lift"
+              }
+            },
+            "Property": "promotion"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "04af9408c069d507dbd0",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Promotion Lift"
+              }
+            },
+            "Property": "Lift CI Low %"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "20eac58019b2e0eb995a",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Promotion Lift"
+              }
+            },
+            "Property": "Lift CI High %"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "8c140bd02294bd2b5d63",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Promotion Lift"
+              }
+            },
+            "Property": "Promotion Lift %"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
   }
 }

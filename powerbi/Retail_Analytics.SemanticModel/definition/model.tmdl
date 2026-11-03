@@ -8,7 +8,7 @@ model Retail_Analytics
 
 annotation PBI_ProTooling = ["MCP-PBIModeling","DevMode"]
 
-annotation PBI_QueryOrder = ["Sales","Product","Household","Date","Coupon Redemptions","Campaign Targets","DataFolder"]
+annotation PBI_QueryOrder = ["Sales","Product","Household","Date","Coupon Redemptions","Campaign Targets","DataFolder","Basket Affinity","Promotion Lift","Campaign Tests"]
 
 annotation __PBI_TimeIntelligenceEnabled = 1
 
