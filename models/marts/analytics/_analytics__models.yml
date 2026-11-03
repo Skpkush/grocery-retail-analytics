@@ -1,0 +1,195 @@
+version: 2
+
+# Analytics marts: segments and test inputs defined once, so a segment or a
+# "habitual" redemption means the same thing in SQL, Python and Power BI.
+
+models:
+  - name: mart_rfm_segments
+    description: >
+      One row per household with merchandise purchases (2,467 on the full data):
+      RFM scores and segment, plus a deal segment from the share of spend made
+      on a loyalty discount.
+    columns:
+      - name: household_id
+        description: Primary key; foreign key to dim_household.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_household')
+                field: household_id
+      - name: recency_days
+        description: Days from the last merchandise purchase to 1 Jan 2018.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 366
+      - name: baskets
+        description: Number of merchandise baskets in 2017.
+      - name: annual_sales
+        description: Merchandise sales in 2017.
+      - name: promo_share
+        description: Share of merchandise sales made with a loyalty discount (0-1).
+      - name: r_score
+        description: Recency quintile, 5 = most recent.
+        data_tests: &quintile
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5]
+                quote: false
+      - name: f_score
+        description: Frequency quintile, 5 = most baskets.
+        data_tests: *quintile
+      - name: m_score
+        description: Monetary quintile, 5 = highest spend.
+        data_tests: *quintile
+      - name: rfm_segment
+        description: Segment from the R, F and M scores.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["1. Champions", "2. Loyal", "3. At risk", "4. New / occasional",
+                         "5. Lapsed", "6. Needs attention"]
+      - name: deal_segment
+        description: Full-price, balanced, deal-leaning or deal-dependent; null with no positive spend.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["1. Full-price (<25% on deal)", "2. Balanced (25-40%)",
+                         "3. Deal-leaning (40-55%)", "4. Deal-dependent (55%+)"]
+
+  - name: mart_coupon_redemptions
+    description: >
+      One row per coupon redemption, flagged habitual when the household bought
+      a covered product in the 56 days before. Source of the finding that about
+      half of coupon redemptions go to shoppers already buying the product.
+    columns:
+      - name: redemption_id
+        description: Primary key, stable across runs (ordered by date, household, coupon, campaign).
+        data_tests: [unique, not_null]
+      - name: household_id
+        description: Foreign key to dim_household.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_household')
+                field: household_id
+      - name: campaign_id
+        description: Foreign key to dim_campaign.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaign')
+                field: campaign_id
+      - name: is_scored
+        description: False for redemptions before 26 Feb 2017, which lack a full 56-day look-back.
+        data_tests: [not_null]
+      - name: is_habitual
+        description: True when a covered product was bought in the 56 days before redeeming.
+        data_tests: [not_null]
+
+  - name: mart_basket_affinity
+    description: >
+      Category pairs bought in the same basket, among the 40 categories in the
+      most baskets, kept when seen together in 500+ baskets.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [category_a, category_b]
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "category_a < category_b"
+    columns:
+      - name: baskets_together
+        description: Baskets containing both categories.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 500
+      - name: support_pct
+        description: Share of all baskets containing both categories, in percent.
+      - name: confidence_a_to_b_pct
+        description: Of baskets with category A, the percent that also contain B.
+      - name: lift
+        description: How many times more often the pair appears than if bought independently.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false
+
+  - name: fct_campaign_spend_panel
+    description: >
+      Household x campaign x period panel of weekly merchandise spend, the input
+      to the difference-in-differences test. Treated = targeted by the campaign;
+      control = never targeted by any campaign.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [campaign_id, household_id, period]
+    columns:
+      - name: campaign_id
+        description: Foreign key to dim_campaign.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaign')
+                field: campaign_id
+      - name: household_id
+        description: Foreign key to dim_household.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_household')
+                field: household_id
+      - name: treated
+        description: 1 if the campaign targeted this household, 0 for the never-targeted control group.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+      - name: period
+        description: placebo_pre, pre or post.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["placebo_pre", "pre", "post"]
+      - name: weekly_spend
+        description: Merchandise sales in the window divided by its length in weeks; 0 if nothing bought.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+  - name: mart_campaign_did
+    description: >
+      Difference-in-differences by campaign type as plain 2x2 means, for the
+      launch and for a placebo window before launch. Confidence intervals and
+      p-values come from the regression in src/retail/stats.py.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [campaign_type, test]
+    columns:
+      - name: campaign_type
+        description: Type A, B or C.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["Type A", "Type B", "Type C"]
+      - name: test
+        description: launch (pre vs campaign window) or placebo (two windows before launch).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["launch", "placebo"]
+      - name: did_weekly_spend
+        description: >
+          (treated after - treated before) - (control after - control before), in
+          dollars per household per week. A non-zero placebo value means the
+          groups were already diverging before launch.

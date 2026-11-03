@@ -1,0 +1,180 @@
+version: 2
+
+# Staging: one view per source table. Renaming, type casting and light cleaning
+# only; no joins and no rows dropped.
+#
+# Tests carrying `meta.dq_check` are the project's 24 data quality checks;
+# src/retail/quality.py reads their results for the app's Data quality page.
+
+models:
+  - name: stg_completejourney__transactions
+    description: >
+      One row per transaction line, typed, with the trading date in store-local
+      (US Eastern) time. Grain: transaction line (no unique key exists).
+    columns:
+      - name: household_id
+        description: Loyalty-card household.
+        data_tests: [not_null]
+      - name: basket_id
+        description: One shopping trip.
+        data_tests: [not_null]
+      - name: product_id
+        description: Product sold.
+        data_tests: [not_null]
+      - name: sales_value
+        description: Amount received by the retailer, after loyalty and coupon-match discounts.
+      - name: source_week
+        description: Retailer's own week number, kept to check the derived trading date against.
+      - name: transaction_timestamp_utc
+        description: Time of sale as published (UTC).
+      - name: transaction_timestamp_local
+        description: Time of sale in store-local US Eastern time.
+      - name: business_date
+        description: Trading date in store-local time. A 04:01 UTC sale on 1 Jan 2018 is 31 Dec 2017.
+        data_tests: [not_null]
+
+  - name: stg_completejourney__products
+    description: One row per product, with blank categories set to UNCATEGORIZED and fuel / non-merchandise flags.
+    columns:
+      - name: product_id
+        description: Product key.
+        data_tests: [unique, not_null]
+      - name: department
+        description: Store department.
+      - name: product_category
+        description: Product category; UNCATEGORIZED when blank in the source.
+      - name: is_fuel
+        description: True for gasoline lines, whose quantity is gallons, not units.
+      - name: is_non_merch
+        description: True for gift card activations and coupon, postal and charity lines.
+
+  - name: stg_completejourney__households
+    description: One row per surveyed household (801), with sort orders for age and income labels.
+    columns:
+      - name: household_id
+        description: Loyalty-card household.
+        data_tests: [unique, not_null]
+      - name: age_order
+        description: Sort order for the age band (1 = 19-24).
+        data_tests:
+          - not_null:
+              config:
+                meta:
+                  dq_check: Income band mapped for every surveyed household
+                  description: Every source income/age label maps to a sort order.
+      - name: income_order
+        description: Sort order for the income band (1 = Under 15K).
+        data_tests:
+          - not_null:
+              config:
+                meta:
+                  dq_check: Income band mapped for every surveyed household
+                  description: Every source income/age label maps to a sort order.
+      - name: income_band
+        description: Coarser income band used in charts (Under 35K, 35-74K, 75-124K, 125K+).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["Under 35K", "35-74K", "75-124K", "125K+"]
+
+  - name: stg_completejourney__campaigns
+    description: One row per campaign with its type and date window.
+    columns:
+      - name: campaign_id
+        description: Campaign key.
+        data_tests: [unique, not_null]
+      - name: campaign_type
+        description: Type A, B or C.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["Type A", "Type B", "Type C"]
+      - name: duration_days
+        description: Days in the campaign window, inclusive.
+
+  - name: stg_completejourney__campaign_targets
+    description: One row per campaign x targeted household.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [campaign_id, household_id]
+
+  - name: stg_completejourney__coupons
+    description: One row per coupon x product x campaign; exact duplicate source rows removed.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [coupon_upc, product_id, campaign_id]
+
+  - name: stg_completejourney__coupon_redemptions
+    description: One row per coupon redemption, as in the source.
+    columns:
+      - name: redemption_date
+        description: Date the coupon was redeemed.
+        data_tests: [not_null]
+
+  - name: stg_completejourney__promotions
+    description: >
+      One row per source promotion listing. Placement code '0' means not placed.
+      Some product x store x week keys repeat; they are merged in int_promotions__deduped.
+
+unit_tests:
+  # File-based sources have no table to read column types from, so these inputs
+  # are given as SQL with every source column.
+  - name: test_business_date_uses_store_local_time
+    description: >
+      Trading dates follow US Eastern time, including daylight saving and the
+      New Year boundary, so they reproduce the retailer's own weeks.
+    model: stg_completejourney__transactions
+    given:
+      - input: source('completejourney', 'transactions')
+        format: sql
+        rows: |
+          select * from (values
+            -- 04:59 UTC Mon 2 Jan is still Sunday 1 Jan in the store
+            ('H1', 'S1', 'B1', 'P1', 1.0, 1.0, 0.0, 0.0, 0.0, 1, timestamp '2017-01-02 04:59:58'),
+            -- 05:05 UTC is Monday 2 Jan locally
+            ('H1', 'S1', 'B2', 'P1', 1.0, 1.0, 0.0, 0.0, 0.0, 2, timestamp '2017-01-02 05:05:54'),
+            -- daylight saving: 04:30 UTC is 00:30 local on Monday 3 Jul
+            ('H1', 'S1', 'B3', 'P1', 1.0, 1.0, 0.0, 0.0, 0.0, 28, timestamp '2017-07-03 04:30:00'),
+            -- 04:01 UTC on 1 Jan 2018 is 23:01 on 31 Dec 2017 locally
+            ('H1', 'S1', 'B4', 'P1', 1.0, 1.0, 0.0, 0.0, 0.0, 53, timestamp '2018-01-01 04:01:20')
+          ) as t(household_id, store_id, basket_id, product_id, quantity, sales_value,
+                 retail_disc, coupon_disc, coupon_match_disc, week, transaction_timestamp)
+    expect:
+      rows:
+        - {basket_id: "B1", business_date: "2017-01-01"}
+        - {basket_id: "B2", business_date: "2017-01-02"}
+        - {basket_id: "B3", business_date: "2017-07-03"}
+        - {basket_id: "B4", business_date: "2017-12-31"}
+
+  - name: test_duplicate_coupon_rows_are_merged
+    model: stg_completejourney__coupons
+    given:
+      - input: source('completejourney', 'coupons')
+        format: sql
+        rows: |
+          select * from (values ('U1', 'P1', 'C1'), ('U1', 'P1', 'C1'))
+            as t(coupon_upc, product_id, campaign_id)
+    expect:
+      rows:
+        - {coupon_upc: "U1", product_id: "P1", campaign_id: "C1"}
+
+  - name: test_fuel_and_gift_cards_are_flagged
+    model: stg_completejourney__products
+    given:
+      - input: source('completejourney', 'products')
+        format: sql
+        rows: |
+          select * from (values
+            ('P1', 'M1', 'GROCERY', 'National', 'SOFT DRINKS', 'SOFT DRINKS 12/18', '12 OZ'),
+            ('F1', 'M2', 'FUEL', 'National', 'COUPON/MISC ITEMS', 'GASOLINE-REG UNLEADED', null),
+            ('G1', 'M3', 'MISCELLANEOUS', 'National', 'COUPON/MISC ITEMS', 'ELECTRONIC GIFT CARDS ACTIVATI', null),
+            ('N1', 'M4', 'GROCERY', 'National', null, null, null)
+          ) as t(product_id, manufacturer_id, department, brand, product_category, product_type, package_size)
+    expect:
+      rows:
+        - {product_id: "P1", is_fuel: false, is_non_merch: false, product_category: "SOFT DRINKS"}
+        - {product_id: "F1", is_fuel: true, is_non_merch: false, product_category: "COUPON/MISC ITEMS"}
+        - {product_id: "G1", is_fuel: false, is_non_merch: true, product_category: "COUPON/MISC ITEMS"}
+        - {product_id: "N1", is_fuel: false, is_non_merch: false, product_category: "UNCATEGORIZED"}

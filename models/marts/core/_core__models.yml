@@ -1,0 +1,360 @@
+version: 2
+
+# Core star schema read by Power BI, the Streamlit app and the SQL analyses.
+
+models:
+  - name: dim_date
+    description: One row per calendar day of 2017, with the retailer's week numbering and holidays.
+    data_tests:
+      - dbt_expectations.expect_table_row_count_to_equal:
+          arguments:
+            value: 365
+    columns:
+      - name: date_key
+        description: Calendar date. Primary key.
+        data_tests: [unique, not_null]
+      - name: retail_week
+        description: Retailer week, Monday to Sunday; week 1 is the partial week ending Sunday 1 Jan.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 53
+      - name: quarter_name
+        description: Quarter label, for example Q4 2017.
+      - name: holiday_name
+        description: US holiday or event on that date, otherwise null.
+
+  - name: dim_product
+    description: One row per product.
+    columns:
+      - name: product_id
+        description: Primary key.
+        data_tests:
+          - unique:
+              config:
+                meta:
+                  dq_check: Unique product_id
+                  description: Product dimension has one row per product.
+          - not_null
+      - name: department
+        description: Store department.
+      - name: product_category
+        description: Product category; UNCATEGORIZED when blank in the source.
+        data_tests: [not_null]
+      - name: brand
+        description: National or Private (own brand).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["National", "Private"]
+      - name: is_fuel
+        description: True for gasoline lines.
+      - name: is_non_merch
+        description: True for gift cards and coupon, postal and charity lines.
+
+  - name: dim_household
+    description: >
+      One row per shopping household (2,469). Demographics come from a survey
+      that 801 households answered; the rest show Unknown.
+    columns:
+      - name: household_id
+        description: Primary key.
+        data_tests:
+          - unique:
+              config:
+                meta:
+                  dq_check: Unique household_id
+                  description: Household dimension has one row per household.
+          - not_null
+      - name: has_demographics
+        description: True when the household answered the demographic survey.
+        data_tests: [not_null]
+      - name: income_band
+        description: Coarse income band, or Unknown.
+      - name: campaigns_received
+        description: Number of campaigns that targeted this household.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+
+  - name: dim_campaign
+    description: One row per marketing campaign.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "end_date >= start_date"
+          config:
+            meta:
+              dq_check: Campaign end on or after start
+              description: Campaign windows are valid.
+    columns:
+      - name: campaign_id
+        description: Primary key.
+        data_tests: [unique, not_null]
+      - name: campaign_type
+        description: Type A, B or C.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["Type A", "Type B", "Type C"]
+
+  - name: dim_coupon
+    description: One row per coupon x product x campaign.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [coupon_upc, product_id, campaign_id]
+    columns:
+      - name: campaign_id
+        description: Campaign that issued the coupon.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaign')
+                field: campaign_id
+
+  - name: fct_sales
+    description: >
+      One row per transaction line with a known product (1,464,471 rows on the
+      full data). There is no line-level primary key: identical lines are
+      legitimate. Incremental: reloads whole trading days from the latest loaded
+      date minus a 3-day lookback.
+    columns:
+      - name: business_date
+        description: Trading date in store-local time. Incremental key.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+              config:
+                meta:
+                  dq_check: Sales dates fall inside the calendar
+                  description: Every business_date exists in dim_date (2017).
+      - name: household_id
+        description: Foreign key to dim_household.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_household')
+                field: household_id
+              config:
+                meta:
+                  dq_check: Sales reference a known household
+                  description: Every fact row joins to the household dimension.
+      - name: basket_id
+        description: Shopping trip.
+        data_tests: [not_null]
+      - name: product_id
+        description: Foreign key to dim_product.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_id
+              config:
+                meta:
+                  dq_check: Sales reference a known product
+                  description: Every fact row joins to the product dimension.
+      - name: units
+        description: Units sold; null for fuel, whose quantity is gallons.
+      - name: sales_value
+        description: Amount received after loyalty and coupon-match discounts.
+        data_tests: &non_negative
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+              config:
+                meta:
+                  dq_check: No negative sales or discounts
+                  description: The source stores discounts as positive amounts.
+      - name: retail_disc
+        description: Loyalty-card discount (positive).
+        data_tests: *non_negative
+      - name: coupon_disc
+        description: Manufacturer coupon discount (positive).
+        data_tests: *non_negative
+      - name: coupon_match_disc
+        description: Retailer coupon-match discount (positive).
+        data_tests: *non_negative
+      - name: gross_sales
+        description: Shelf price before the loyalty and coupon-match discounts.
+      - name: is_merch
+        description: True for merchandise (not fuel, gift cards or service lines). Most KPIs use only these.
+
+  - name: quarantine_transactions
+    description: >
+      Transaction lines whose product_id is not in the product master (4,836 on
+      the full data). Kept so totals reconcile; excluded from every analysis.
+    columns:
+      - name: reason
+        description: Why the line is quarantined.
+
+  - name: fct_baskets
+    description: One row per basket (shopping trip), merchandise lines only.
+    columns:
+      - name: basket_id
+        description: Primary key.
+        data_tests:
+          - unique:
+              config:
+                meta:
+                  dq_check: Unique basket_id
+                  description: Basket fact has one row per basket.
+          - not_null
+      - name: household_id
+        description: Foreign key to dim_household.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_household')
+                field: household_id
+      - name: business_date
+        description: Trading date of the trip.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: basket_started_at_local
+        description: Store-local time of the first line scanned in the basket.
+      - name: sales_value
+        description: Merchandise sales in the basket.
+      - name: total_discount
+        description: Loyalty + manufacturer coupon + coupon-match discounts.
+
+  - name: fct_campaign_targets
+    description: One row per campaign x targeted household.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [campaign_id, household_id]
+    columns:
+      - name: campaign_id
+        description: Foreign key to dim_campaign.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaign')
+                field: campaign_id
+      - name: household_id
+        description: Targeted household.
+        data_tests: [not_null]
+
+  - name: fct_coupon_redemptions
+    description: One row per coupon redemption, with the campaign type.
+    columns:
+      - name: campaign_id
+        description: Foreign key to dim_campaign.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_campaign')
+                field: campaign_id
+      - name: household_id
+        description: Foreign key to dim_household.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_household')
+                field: household_id
+      - name: redemption_date
+        description: Date redeemed.
+        data_tests: [not_null]
+
+  - name: fct_promotions
+    description: >
+      One row per product x store x week with display and mailer placement
+      (20.9M rows on the full data). Incremental by week.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [product_id, store_id, week]
+          config:
+            meta:
+              dq_check: Unique promotion key
+              description: One promotion row per product x store x week after merging.
+    columns:
+      - name: week
+        description: Retailer week. Incremental key.
+        data_tests: [not_null]
+      - name: on_display
+        description: True if the product was on in-store display that week.
+      - name: in_mailer
+        description: True if the product was in the weekly mailer.
+      - name: source_rows
+        description: Source listings merged into this row; above 1 means duplicates were merged.
+
+unit_tests:
+  - name: test_fct_sales_business_rules
+    description: >
+      Orphan lines are excluded; fuel has no unit count and is not merchandise;
+      gift cards are not merchandise; gross sales add back the retailer-funded
+      discounts but not the manufacturer coupon.
+    model: fct_sales
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('int_transactions__enriched')
+        format: sql
+        rows: |
+          select 'B3' as basket_id, 'P1' as product_id, 1.0 as quantity, 2.00 as sales_value,
+                 0.25 as retail_disc, 0.10 as coupon_disc, 0.05 as coupon_match_disc,
+                 date '2017-07-03' as business_date, 'H2' as household_id, 'S1' as store_id,
+                 false as is_orphan_product, false as is_fuel, false as is_non_merch
+          union all
+          select 'B4', 'FUEL1', 9000.0, 30.00, 0, 0, 0, date '2017-12-31', 'H2', 'S1', false, true, false
+          union all
+          select 'B4', 'GC1', 1.0, 25.00, 0, 0, 0, date '2017-12-31', 'H2', 'S1', false, false, true
+          union all
+          select 'B5', 'NOPE', 1.0, 0.00, 0, 0, 0, date '2017-03-01', 'H1', 'S1', true, false, false
+    expect:
+      rows:
+        - {basket_id: "B3", product_id: "P1", units: 1.0, gross_sales: 2.30, is_merch: true}
+        - {basket_id: "B4", product_id: "FUEL1", units: null, gross_sales: 30.00, is_merch: false}
+        - {basket_id: "B4", product_id: "GC1", units: 1.0, gross_sales: 25.00, is_merch: false}
+
+  - name: test_baskets_hold_merchandise_only
+    model: fct_baskets
+    given:
+      - input: ref('fct_sales')
+        rows:
+          - {basket_id: "B1", household_id: "H1", store_id: "S1", business_date: "2017-05-01", units: 2, sales_value: 3.0, gross_sales: 3.5, retail_disc: 0.5, coupon_disc: 0, coupon_match_disc: 0, is_merch: true}
+          - {basket_id: "B1", household_id: "H1", store_id: "S1", business_date: "2017-05-01", units: 1, sales_value: 1.0, gross_sales: 1.0, retail_disc: 0, coupon_disc: 0, coupon_match_disc: 0, is_merch: true}
+          - {basket_id: "B2", household_id: "H1", store_id: "S1", business_date: "2017-05-02", units: null, sales_value: 30.0, gross_sales: 30.0, retail_disc: 0, coupon_disc: 0, coupon_match_disc: 0, is_merch: false}
+      - input: ref('int_transactions__enriched')
+        format: sql
+        rows: |
+          select 'B1' as basket_id, timestamp '2017-05-01 10:15:00' as transaction_timestamp_local
+          union all select 'B1', timestamp '2017-05-01 10:16:00'
+          union all select 'B2', timestamp '2017-05-02 08:00:00'
+    expect:
+      rows:
+        - {basket_id: "B1", lines: 2, units: 3, sales_value: 4.0, total_discount: 0.5,
+           basket_started_at_local: "2017-05-01 10:15:00"}
+
+  - name: test_households_without_survey_are_kept
+    model: dim_household
+    given:
+      - input: ref('int_transactions__enriched')
+        format: sql
+        rows: |
+          select 'H1' as household_id, date '2017-01-05' as business_date, false as is_orphan_product
+          union all select 'H2', date '2017-02-01', false
+          union all select 'H3', date '2017-02-01', true
+      - input: ref('stg_completejourney__households')
+        rows:
+          - {household_id: "H1", age: "35-44", age_order: 3, income_band: "35-74K"}
+      - input: ref('stg_completejourney__campaign_targets')
+        rows:
+          - {campaign_id: "C1", household_id: "H2"}
+    expect:
+      rows:
+        - {household_id: "H1", has_demographics: true, age: "35-44", campaigns_received: 0}
+        - {household_id: "H2", has_demographics: false, age: "Unknown", campaigns_received: 1}

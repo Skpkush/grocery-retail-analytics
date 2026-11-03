@@ -1,0 +1,51 @@
+version: 2
+
+# Intermediate: joins and business logic between staging and the marts.
+# Materialized as ephemeral (compiled into the models that use them as CTEs),
+# so they add no tables to the warehouse.
+
+models:
+  - name: int_transactions__enriched
+    description: >
+      Transaction lines with product flags attached. Lines whose product is
+      missing from the product master are flagged (is_orphan_product) rather
+      than dropped, so fct_sales and quarantine_transactions together still
+      add up to the source.
+    columns:
+      - name: is_orphan_product
+        description: True when product_id does not exist in the product master.
+      - name: is_fuel
+        description: True for gasoline lines.
+      - name: is_non_merch
+        description: True for gift cards and coupon, postal and charity lines.
+
+  - name: int_promotions__deduped
+    description: >
+      One row per product x store x week. Keys listed more than once in the
+      source are merged: promoted if any listing says so, lowest placement code kept.
+    columns:
+      - name: source_rows
+        description: How many source listings were merged into this row.
+
+  - name: int_households__rfm_scores
+    description: >
+      Per household: days since last merchandise purchase, number of baskets,
+      merchandise spend and share of spend on a loyalty discount, each scored
+      into quintiles. household_id breaks ties so the scores never change between runs.
+    columns:
+      - name: recency_days
+        description: Days from the last purchase to 1 Jan 2018.
+      - name: r_score
+        description: Recency quintile, 5 = most recent.
+      - name: f_score
+        description: Frequency quintile, 5 = most baskets.
+      - name: m_score
+        description: Monetary quintile, 5 = highest spend.
+
+  - name: int_coupon_redemptions__prior_purchases
+    description: >
+      Coupon redemptions with a stable redemption_id and a flag for whether the
+      household bought a product covered by the coupon in the 56 days before.
+    columns:
+      - name: has_prior_purchase
+        description: True when a covered product was bought in the look-back window.
