@@ -1,0 +1,18 @@
+# dbt connection profile. Safe to commit: DuckDB is a local file, so there are
+# no passwords or tokens. dbt reads profiles.yml from the folder it runs in.
+# To keep a private copy instead, move it to ~/.dbt/profiles.yml.
+grocery_retail:
+  target: dev
+  outputs:
+    # Full dataset: sources are the Parquet files written by `python -m retail.ingest`.
+    dev:
+      type: duckdb
+      path: data/warehouse.duckdb
+      schema: main
+      threads: 4
+    # Small committed sample (sample_data/*.csv). Used by GitHub Actions.
+    ci:
+      type: duckdb
+      path: data/warehouse_ci.duckdb
+      schema: main
+      threads: 4

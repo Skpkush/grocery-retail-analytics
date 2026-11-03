@@ -23,3 +23,9 @@ powerbi/**/.pbi/cache.abf
 Thumbs.db
 .vscode/
 .idea/
+
+# dbt
+target/
+dbt_packages/
+logs/
+.user.yml

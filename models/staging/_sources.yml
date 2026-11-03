@@ -1,0 +1,65 @@
+version: 2
+
+# The Complete Journey (84.51° / dunnhumby), via the CC0 `completejourney` R package.
+# `python -m retail.ingest` downloads the R files and lands each one as Parquet,
+# unchanged, in data/landing/. dbt-duckdb reads those files directly through
+# `external_location`, so there is no separate load step.
+#
+# CI points RETAIL_SOURCE_DIR at sample_data/ and RETAIL_SOURCE_EXT at csv, so the
+# same models run on the small committed sample.
+#
+# Freshness: not configured. The dataset is a fixed snapshot of calendar year 2017,
+# so a freshness check would always fail and tell us nothing. On a live feed,
+# transactions would get `loaded_at_field: transaction_timestamp` with
+# warn_after 1 day / error_after 2 days.
+
+sources:
+  - name: completejourney
+    description: Raw Complete Journey tables, one file per table, as published.
+    meta:
+      external_location: "{{ env_var('RETAIL_SOURCE_DIR', 'data/landing') }}/{name}.{{ env_var('RETAIL_SOURCE_EXT', 'parquet') }}"
+    tables:
+      - name: transactions
+        description: >
+          One row per product line in a shopping basket, for 2,469 loyalty-card
+          households over 2017. No line-level ID exists; identical lines are
+          legitimate (the same item scanned twice).
+        columns:
+          - name: household_id
+            description: Loyalty-card household.
+          - name: store_id
+            description: Store where the basket was rung up.
+          - name: basket_id
+            description: One shopping trip.
+          - name: product_id
+            description: Product sold. A small number do not exist in the product table.
+          - name: quantity
+            description: Units sold. For fuel this is gallons or an odometer reading, not units.
+          - name: sales_value
+            description: Amount the retailer received, after loyalty and coupon-match discounts.
+          - name: retail_disc
+            description: Loyalty-card discount, stored as a positive amount.
+          - name: coupon_disc
+            description: Manufacturer coupon discount, stored as a positive amount.
+          - name: coupon_match_disc
+            description: Retailer's match of a manufacturer coupon, stored as a positive amount.
+          - name: week
+            description: Retailer's own week number (1-53).
+          - name: transaction_timestamp
+            description: Time of sale in UTC.
+      - name: products
+        description: Product master, one row per product.
+      - name: demographics
+        description: Survey answers for the 801 households that completed it.
+      - name: campaigns
+        description: Which households each marketing campaign targeted.
+      - name: campaign_descriptions
+        description: One row per campaign with its type and date window.
+      - name: coupons
+        description: Products covered by each coupon in each campaign. Contains duplicate rows.
+      - name: coupon_redemptions
+        description: One row per coupon redeemed by a household.
+      - name: promotions
+        description: >
+          In-store display and mailer placement by product x store x week, about
+          20.9M rows. Lists promoted weeks only; some keys appear more than once.

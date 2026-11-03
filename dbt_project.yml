@@ -1,0 +1,48 @@
+name: grocery_retail
+version: "2.0.0"
+config-version: 2
+profile: grocery_retail
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests/dbt"]        # tests/ also holds the Python test suite
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages", "logs"]
+
+vars:
+  # The dataset covers calendar year 2017. Recency for RFM is measured from the
+  # first day after the data ends, so the newest shoppers get recency 0-1.
+  data_start_date: "2017-01-01"
+  data_end_date: "2017-12-31"
+  # A coupon redemption is "habitual" if the household bought a covered product
+  # in this many days before redeeming.
+  habitual_lookback_days: 56
+  # Late-arriving transaction lines are re-processed this many days back on
+  # every incremental run of fct_sales.
+  incremental_lookback_days: 3
+  # Weeks of history in each difference-in-differences window.
+  did_pre_weeks: 8
+
+models:
+  grocery_retail:
+    +persist_docs:
+      relation: true
+      columns: true
+    staging:
+      +materialized: view
+      +tags: ["staging"]
+    intermediate:
+      +materialized: ephemeral
+      +tags: ["intermediate"]
+    marts:
+      +materialized: table
+      core:
+        +tags: ["marts", "core"]
+      analytics:
+        +tags: ["marts", "analytics"]
+
+data_tests:
+  grocery_retail:
+    +store_failures: false
