@@ -1,259 +1,218 @@
 # Grocery Retail Analytics
 
+![dbt build](https://github.com/Skpkush/grocery-retail-analytics/actions/workflows/dbt.yml/badge.svg)
 ![CI](https://github.com/Skpkush/grocery-retail-analytics/actions/workflows/ci.yml/badge.svg)
 ![Data pipeline](https://github.com/Skpkush/grocery-retail-analytics/actions/workflows/data-pipeline.yml/badge.svg)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
-![SQL](https://img.shields.io/badge/SQL-DuckDB-FFF000?logo=duckdb&logoColor=black)
+![dbt](https://img.shields.io/badge/dbt-core%201.10%2B-FF694B?logo=dbt&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-warehouse-FFF000?logo=duckdb&logoColor=black)
 ![Power BI](https://img.shields.io/badge/Power%20BI-DAX-F2C811?logo=powerbi&logoColor=black)
-![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+
+**A dbt project that models 1.46 million real grocery transactions into a tested star
+schema, then uses it to measure whether a retailer's loyalty discounts, coupons and
+campaigns change shopping behaviour.**
 
 ![Power BI Executive Overview](docs/images/powerbi_1_executive_overview.png)
 
-A grocery retailer spends heavily on loyalty discounts, coupon campaigns and in-store
-promotions. I wanted to find out which customers actually drive the business and whether
-that promotional spending is changing behaviour or mostly discounting purchases that would
-have happened anyway.
+## The business question
 
-To answer that, I worked with **1.46 million real transactions** from 2,469 households over
-a full year, from 84.51° / dunnhumby's *The Complete Journey* dataset. The project covers the
-full analyst workflow: cleaning and validating the data, building a reliable data model,
-analysing it in SQL, testing the claims statistically, and presenting the results in a
-Power BI report for a business audience.
+A grocery retailer spends heavily on loyalty discounts, coupon campaigns and in-store
+promotions. Which households actually drive the business, and is the promotional
+spending changing behaviour, or mostly discounting purchases that would have happened
+anyway?
+
+The data is 84.51° / dunnhumby's *The Complete Journey*: 1,469,307 transaction lines from
+2,469 loyalty-card households over calendar year 2017, plus products, demographics,
+27 campaigns, coupons and 20.9 million promotion listings.
 
 ---
 
-## What I found
+## Architecture
 
-**1. A small group of households carries the business.**
-The top 10% of households generate 34.2% of sales. The "Champions" segment from my RFM
-analysis is only 21% of households but brings in 45.7% of sales. Another 318 frequent
-shoppers haven't visited in about four weeks, and they still account for 13.4% of annual
-sales. That makes them the obvious first target for a win-back offer.
+```mermaid
+flowchart LR
+    A["8 source files<br/>(completejourney, CC0)"] -->|"python -m retail.ingest<br/>download + checksum"| B["data/landing/*.parquet"]
+    B --> C["dbt staging<br/>8 views"]
+    C --> D["dbt intermediate<br/>4 ephemeral models"]
+    D --> E["dbt marts<br/>star schema + analytics marts"]
+    E --> F["Power BI report<br/>44 DAX measures"]
+    E --> G["Streamlit app"]
+    E --> H["src/retail/stats.py<br/>DiD regression, CIs"]
+    T["102 data tests<br/>6 unit tests"] -.->|"dbt build"| E
+```
 
-**2. About half of coupon redemptions go to people who were already buying the product.**
-Of 2,046 redemptions I could score, 50.6% (95% CI 48.5–52.8%) came from households that had
-bought the same product in the previous 56 days. For the large Type A campaigns the figure
-is 54.5%. My recommendation is to stop sending a product's coupon to its recent buyers, and
-to test that change before rolling it out. The caveat: this is a proxy. A regular buyer
-might still buy *more* because of a coupon, and this data can't show that.
+dbt-duckdb reads the landed Parquet files directly, so there is no load step and no
+cloud cost. `dbt build` runs every model, data test and unit test in dependency order;
+an error-level test failure stops the build before anything reaches a dashboard.
 
-**3. The data can't tell us whether the campaigns work, and that is a finding in itself.**
-I compared targeted households with the 910 that were never targeted, using
-difference-in-differences. The model includes a placebo check on the period *before*
-launch, and that check failed for all three campaign types: targeted households were
-already spending less than everyone else (up to $5.26 per household per week) before any
-campaign started. The retailer is effectively aiming campaigns at shoppers who are already
-drifting away, so any "lift" is mixed up with that trend. The fix is cheap: hold back a
-random 10% of each target list. Without it, campaign ROI will stay unmeasurable.
+### Lineage
 
-**4. Displays and mailers work far better together than alone.**
-Comparing the same product in the same store against its unpromoted weeks, a mailer alone
-is linked to 131% higher sales, a display alone to 129%, and both together to **225%**
-(95% CI 220–231%). Promotions aren't randomly assigned, so treat these figures as upper
-bounds rather than proven effects. The direction is still clear enough to act on, ideally
-backed by a proper store test.
+![dbt lineage graph](docs/images/dbt_lineage.png)
 
-**5. Shoppers buy meal ingredients together.**
-Onions and potatoes appear in the same basket 4.6 times more often than chance would
-predict, followed closely by onions with other vegetables and with tomatoes. That points to
-meal-bundle promotions or placing those categories near each other in store.
+*Sources (green) → staging → intermediate → marts → the Power BI report and Streamlit
+app, declared as dbt exposures (orange). Generated with `dbt docs generate`.*
 
-I've kept every number in this README traceable. The findings are generated from the data
-by code ([`reports/findings.md`](reports/findings.md)), and none of them are typed by hand.
-The data has no costs or margins, so I haven't estimated savings or ROI anywhere.
+| Layer | Models | Materialization | What happens here |
+|---|---|---|---|
+| `staging` | 8 `stg_completejourney__*` | view | One per source table: rename, cast types, trim text, convert UTC to store-local time. No joins. |
+| `intermediate` | 4 `int_*` | ephemeral | Joins and business logic: product flags on each line, promotion de-duplication, RFM scores, prior-purchase look-back. |
+| `marts/core` | 5 `dim_*`, 5 `fct_*`, `quarantine_transactions` | table, 2 incremental | The star schema Power BI reads. `fct_sales` and `fct_promotions` are incremental. |
+| `marts/analytics` | `mart_rfm_segments`, `mart_coupon_redemptions`, `mart_basket_affinity`, `fct_campaign_spend_panel`, `mart_campaign_did` | table | Segments and test inputs defined once, so they mean the same thing in SQL, Python and Power BI. |
+
+**Incremental strategy.** `fct_sales` (1,464,471 rows) has no line-level key: identical
+lines are legitimate (the same item scanned twice). So instead of merging row by row, each
+run reloads whole trading days (`delete+insert` on `business_date`), from the latest loaded
+date minus a 3-day lookback. Late lines inside that window are picked up without
+duplicates. `fct_promotions` (20,927,744 rows) does the same by retail week.
+
+---
+
+## Key findings
+
+All numbers below are produced by the code in this repository on the full dataset
+([`reports/findings.md`](reports/findings.md) is generated, not typed). The data has no
+costs or margins, so no savings or ROI are claimed.
+
+1. **A small group of households carries the business.** The top 10% of households
+   generate 34.2% of merchandise sales. RFM "Champions" are 513 households (21%) and
+   45.7% of sales. 318 "At risk" frequent shoppers, about 26 days since their last visit,
+   still hold 13.4% of annual sales: the first target for a win-back offer.
+2. **About half of coupon redemptions go to shoppers already buying the product.**
+   50.6% of 2,046 scored redemptions (95% CI 48.5–52.8%) came from households that bought
+   a covered product in the previous 56 days; 54.5% for Type A campaigns. Recommendation:
+   leave a product's recent buyers out of its coupon mailing, and test that with a holdout.
+3. **The data cannot show whether campaigns increase spending.** A difference-in-differences
+   test against the 910 never-targeted households fails its placebo check for all three
+   campaign types: targeted households were already spending less before launch, by up to
+   $5.26 per household per week. Recommendation: hold out a random 10% of every target
+   list so future campaigns can be measured.
+4. **Displays and mailers work far better together.** Against the same product in the same
+   store in unpromoted weeks, sales were 131% higher with a mailer only, 129% with a display
+   only and 225% with both (95% CI 218–232%). Promotions are not randomly assigned, so read
+   these as upper bounds.
+5. **Meal ingredients are bought together.** Onions and potatoes share a basket 4.6 times
+   more often than chance; onions with other vegetables and with tomatoes follow at 4.5.
+
+---
+
+## Data quality and testing
+
+`dbt build` runs **102 data tests and 6 unit tests** and passes with 0 errors and
+0 warnings on both the full data and the CI sample.
+
+- **24 business data quality checks**, migrated from the original Python quality gate and
+  tagged `meta.dq_check`. 17 are blocking (for example: source rows = `fct_sales` +
+  quarantine, sales reconcile to the cent, the derived retail week matches the retailer's
+  own week on every line). 7 track known source issues with a ceiling, as `severity: warn`
+  with `warn_if` (for example, 4,836 lines whose product is missing are quarantined, not
+  deleted). [`docs/data_quality.md`](docs/data_quality.md) lists each check, its live count
+  and the dbt tests behind it.
+- **Key tests on every mart:** `unique` + `not_null` on primary keys,
+  `dbt_utils.unique_combination_of_columns` on composite grains, `relationships` on every
+  foreign key, `accepted_values` on segments and categories.
+- **Unit tests** check the trickiest rules on hand-built rows: store-local trading dates
+  across daylight saving and New Year, fuel and gift card flags, coupon de-duplication,
+  `fct_sales` rules, basket aggregation, and households without survey answers.
+- **Checked against the previous pipeline.** Before retiring the old hand-run SQL, every
+  dbt table was compared row by row with it on the full data: all rows match, and the
+  difference-in-differences results are identical.
+- **Power BI checked against SQL.** 58 values from the Power BI model are recomputed in SQL
+  and all 58 match ([`reports/reconciliation.md`](reports/reconciliation.md)).
+
+**CI.** The full dataset is never committed. [`sample_data/`](sample_data) holds 9 whole
+households (5,899 transaction lines) picked across six strata (targeted or not, survey or
+not, coupon redeemer or not), plus the rows of every other table they touch.
+[`.github/workflows/dbt.yml`](.github/workflows/dbt.yml) runs `dbt build --target ci` and
+`dbt docs generate` on it on every push. A second workflow runs the whole pipeline on the
+real data.
 
 ---
 
 ## The Power BI report
 
-The report has five pages, each built around a single business question, plus a
-drill-through page for individual departments.
-
-### Executive Overview: how is the business doing this quarter?
-
-![Executive Overview](docs/images/powerbi_1_executive_overview.png)
-
-Q4 sales reached $1.10M, up 6.2% on Q3. Transactions actually *fell* 1.1%, so the growth
-came entirely from bigger baskets (+7.4%). The change cards use green and red, except the
-discount rate, where a drop is good news and the colours are reversed.
-
-### Customer Analytics: who drives value?
-
-![Customer Analytics](docs/images/powerbi_2_customer_analytics.png)
-
-RFM segments with the two that matter most highlighted: Champions in teal and At risk in
-amber. Below them, spend by income band and household type for the 801 households that
-completed the demographic survey.
-
-### Product Analytics: what sells, and what sells together?
-
-![Product Analytics](docs/images/powerbi_3_product_analytics.png)
-
-Department and category contribution, how many households each category reaches, and the
-strongest basket pairs. Right-click any department to drill through to its own detail page.
-
-### Promotion Effectiveness: is the discount spend working?
-
-![Promotion Effectiveness](docs/images/powerbi_4_promotion_effectiveness.png)
-
-46.8% of sales are made on a loyalty discount. The campaign test table highlights the failed
-placebo checks in amber, so the reason campaign ROI can't be measured is visible at a glance.
-
-### Business Recommendations: what should we do, and how sure are we?
-
-![Business Recommendations](docs/images/powerbi_5_business_recommendations.png)
-
-Each finding comes with its evidence, a recommended action, its caveat and a confidence
-level, shown as a coloured bar: teal for high, amber for moderate, grey for "can't
-conclude".
-
-**Behind the report:**
-- A star schema (a Sales fact with Product, Household and Date dimensions) with 44 DAX measures: 37 business measures plus 7 that drive the conditional formatting.
-- A custom theme and a written design spec ([`docs/powerbi_design_guide.md`](docs/powerbi_design_guide.md)).
-- The report layout is generated from code ([`powerbi/tools/build_report.py`](powerbi/tools/build_report.py)), so every change can be reviewed like any other code change.
-
-**Checking DAX against SQL.** I didn't want the dashboard to quietly disagree with the
-analysis, so I recomputed 58 of the report's values independently in SQL. All 58 match
-([`reports/reconciliation.md`](reports/reconciliation.md)), and a test re-checks them on
-every run. The process caught three DAX bugs on the way:
-- A `CALCULATE` filter that ignored row context. It made one redemption rate show 83% instead of 6.5%.
-- An off-by-one error in the top-10% calculation.
-- A measure whose name clashed with a column name.
-
----
-
-## Cleaning real data
-
-Most of the work was making the data trustworthy. Real data comes with problems, and these
-were the main ones:
-
-- **Timestamps were in UTC, but the stores trade on US Eastern time.** My first version used a fixed cut-off hour, and the quality checks flagged 785 rows landing in the wrong week around the daylight-saving change. After converting properly, every one of the 1.46M rows matches the retailer's own week numbering.
-- **Fuel "quantities" aren't units.** They're gallons or odometer readings, some as high as 89,638. I kept fuel sales but excluded fuel from unit counts.
-- **Gift card activations aren't revenue,** so they're excluded from merchandise sales.
-- **4,836 transactions point to products that don't exist** in the product table. I set them aside in a quarantine table rather than deleting them, and the totals still reconcile to the cent.
-- **Duplicates:** 1,623 duplicate coupon rows and 12,785 duplicate promotion listings. The promotions feed also lists only promoted weeks, so I had to build the "not promoted" baseline myself.
-- **RFM segments changed from run to run,** because households with tied scores were assigned to segments arbitrarily. A deterministic tie-breaker fixed it.
-
-Every rule is enforced by an automated quality gate with 24 checks. If a serious check
-fails, the pipeline stops before anything reaches a dashboard.
-
-| Want to check something? | Look here |
-|---|---|
-| Tables, grain and relationships | [`docs/data_model.md`](docs/data_model.md) |
-| All 24 quality checks and how each issue is handled | [`docs/data_quality.md`](docs/data_quality.md) |
-| How every KPI is defined, in SQL and in DAX | [`docs/kpi_definitions.md`](docs/kpi_definitions.md) |
-| Example queries with their expected output | [`docs/sql_examples.md`](docs/sql_examples.md) |
-| Statistical methods and their limits | [`docs/methodology.md`](docs/methodology.md) |
-
----
-
-## A sample of the SQL
-
-This query produces finding 2. The "habitual" flag is calculated once in the data model, so
-the analysis query itself stays short:
-
-```sql
-SELECT
-  CASE WHEN GROUPING(campaign_type) = 1 THEN 'All' ELSE campaign_type END AS campaign_type,
-  COUNT(*) AS redemptions,
-  COUNT(*) FILTER (WHERE is_habitual) AS habitual_redemptions,
-  ROUND(100.0 * COUNT(*) FILTER (WHERE is_habitual) / COUNT(*), 1) AS habitual_pct
-FROM mart_coupon_redemptions
-WHERE is_scored
-GROUP BY ROLLUP (campaign_type)
-ORDER BY GROUPING(campaign_type), campaign_type;
-```
-
-| campaign_type | redemptions | habitual_redemptions | habitual_pct |
-|---|---:|---:|---:|
-| Type A | 1,685 | 919 | 54.5 |
-| Type B | 300 | 101 | 33.7 |
-| Type C | 61 | 16 | 26.2 |
-| All | 2,046 | 1,036 | 50.6 |
-
-The [`sql/analysis`](sql/analysis) folder holds 13 queries like this, covering quarterly
-KPIs, weekly trends, department performance, the own-brand gap, deal dependence, RFM,
-customer concentration, demographics, campaigns, coupons, promotion lift, market basket
-and shopping times.
-
----
-
-## The Streamlit app and the "ask the data" assistant
+Five pages, each built around one business question, plus a department drill-through.
+The report reads the dbt marts (exported to Parquet by `src/retail/export_powerbi.py`).
 
 | | |
 |---|---|
-| ![Campaign test](docs/images/streamlit_campaigns.png) | ![Ask the data](docs/images/streamlit_ask.png) |
+| ![Customer Analytics](docs/images/powerbi_2_customer_analytics.png) | ![Promotion Effectiveness](docs/images/powerbi_4_promotion_effectiveness.png) |
+| **Customer Analytics:** RFM segments and spend by income and household type. | **Promotion Effectiveness:** discount share, coupon habitual rate and the campaign tests, with failed placebo checks highlighted. |
 
-Alongside Power BI there's a Streamlit app covering the same analysis, plus a SQL runner
-and a small question-answering assistant. The assistant is deliberately conservative:
-
-- **It answers only from approved sources:** the SQL library and the project documentation.
-- **It cites where each answer came from.**
-- **It refuses rather than guesses.** It declines what the data can't answer, such as margins, forecasts or other years.
-- **It cannot change anything:** its database connection is read-only, with file access switched off.
-- **It flags uncertainty:** answers about associations carry their caveat.
-
-A set of 24 test questions checks it on every push, including requests it is supposed to
-refuse. It's a nice extra, but the analysis is the core of the project.
+The model is a star schema (Sales fact with Product, Household and Date dimensions) with
+44 DAX measures; the report layout is generated from code
+([`powerbi/tools/build_report.py`](powerbi/tools/build_report.py)).
 
 ---
 
-## How it's built
+## Tech stack
 
-```text
-raw data (8 files) → cleaning & quality checks → DuckDB data model → SQL analyses → statistical tests
-                                                        │
-                        ┌───────────────────────────────┼──────────────────────────────┐
-                   Power BI report                Streamlit app                 findings & docs
-                (checked against SQL)           (+ Q&A assistant)            (generated from data)
-```
-
-**Tools:**
-- **Data and analysis:** Python, SQL (DuckDB), pandas, SciPy and statsmodels.
-- **Reporting:** Power BI (DAX), Streamlit and Plotly.
-- **Quality:** pytest, with GitHub Actions running the full pipeline on the real data at every push.
+- **Transformation and testing:** dbt-core, dbt-duckdb, dbt_utils, dbt_expectations
+- **Warehouse:** DuckDB (a local file)
+- **Analysis:** SQL, Python (pandas, statsmodels for the DiD regression, NumPy bootstrap)
+- **Reporting:** Power BI (DAX), Streamlit, Plotly
+- **Quality:** dbt tests and unit tests, pytest, ruff, GitHub Actions
 
 ---
 
-## Running it yourself
+## Run it locally
 
-You need Python 3.11. The pipeline downloads the data itself; a full run takes a few minutes.
+Needs Python 3.11. From the repository root:
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate              # macOS/Linux: source .venv/bin/activate
-pip install -r requirements-dev.txt
-set PYTHONPATH=src                  # macOS/Linux: export PYTHONPATH=src
-python -m retail.pipeline
-streamlit run app.py
+pip install -r requirements.txt -e .   # 1. install dbt-duckdb and the retail package
+python -m retail.ingest                # 2. download the source data (a few minutes)
+dbt deps && dbt build                  # 3. build and test every model
 ```
 
-To open the Power BI report:
-1. Open `powerbi/Retail_Analytics.pbip` in Power BI Desktop.
-2. Point the `DataFolder` parameter (Transform data → Manage parameters) at your `powerbi/data/` folder.
-3. Click Refresh.
+- **No download:** `dbt deps && dbt build --target ci` runs everything on the committed sample.
+- **Everything else** (statistics, reports, docs, Power BI export): `python -m retail.pipeline`.
+- **Docs and lineage:** `dbt docs generate && dbt docs serve`.
+- **App:** `streamlit run app.py`.
+- **Power BI:** open `powerbi/Retail_Analytics.pbip`, point the `DataFolder` parameter at
+  `powerbi/data/`, then refresh.
+- With less than about 8 GB of RAM, set `RETAIL_SKIP_TABLES=promotions` before step 2 to
+  skip the 20.9M-row promotions file.
 
-Run the tests with `pytest -q`. On a machine with less than about 8 GB of RAM, set
-`RETAIL_SKIP_TABLES=promotions` to skip the 20.9-million-row promotions file.
+---
+
+## Folder structure
+
+```text
+models/
+  staging/          stg_* views, one per source, plus _sources.yml
+  intermediate/     int_* ephemeral models: joins and business logic
+  marts/core/       dim_* and fct_* star schema (fct_sales, fct_promotions incremental)
+  marts/analytics/  RFM segments, coupon redemptions, basket affinity, DiD panel and summary
+  exposures.yml     Power BI report and Streamlit app
+tests/dbt/          14 singular dbt tests
+analyses/           13 business-question queries (dbt analyses, use ref())
+sample_data/        CI sample (CSV), rebuilt by scripts/make_ci_sample.py
+src/retail/         ingest, dbt runner, quality report, statistics, Power BI export, app logic
+tests/              pytest suite (warehouse, reconciliation, SQL guard, copilot)
+powerbi/            Power BI project (PBIP), theme and report builder
+docs/               data model, data quality, KPI definitions, methodology, screenshots
+reports/            generated findings, insights and reconciliation
+dbt_project.yml  packages.yml  profiles.yml (no secrets: DuckDB is a local file)
+```
+
+See [`LEARNING.md`](LEARNING.md) for how the dbt project works, written for someone
+learning dbt.
 
 ---
 
 ## Limitations
 
-There are limits to what this data can show:
-
-- **These are panel households, not total store sales.** The data covers 2,469 loyalty-card households.
-- **There's only one year,** so I can't compare years or model seasonality reliably.
-- **There's no cost data,** so I can't say anything about margins or profitability.
-- **Nothing was randomised:** neither promotions nor campaigns. Promotion lift is an association, not a proven effect, and campaign impact can't be identified at all (finding 3).
-- **Demographic answers come from a minority:** only 32% of households have demographic data.
-
----
+- **Panel households, not total store sales:** the data covers 2,469 loyalty-card households.
+- **One year only,** so there are no year-on-year comparisons or reliable seasonality.
+- **No cost data,** so nothing here measures margin or profit.
+- **Nothing was randomised.** Promotion lift is an association; campaign impact cannot be
+  identified at all (finding 3).
+- **Demographics cover a minority:** 801 of 2,469 households answered the survey.
 
 ## Data
 
 *The Complete Journey* by 84.51° (dunnhumby), via the CC0-licensed
 [`completejourney`](https://github.com/bradleyboehmke/completejourney) package. The raw data
-is downloaded when you run the pipeline and isn't stored in this repository.
+is downloaded at run time and is not stored in this repository.
 
-Built by [@Skpkush](https://github.com/Skpkush).
+Built by Sumit Kumar Prajapat ([@Skpkush](https://github.com/Skpkush)).
