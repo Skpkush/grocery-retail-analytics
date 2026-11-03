@@ -237,6 +237,7 @@ DIVIDE ( CALCULATE ( [Net Sales], Sales[retail_disc] > 0 ), [Net Sales] )
 | Lift CI High % | `DIVIDE ( MAX ( 'Promotion Lift'[ci_high_pct] ), 100 )` |
 | Lift CI Low % | `DIVIDE ( MAX ( 'Promotion Lift'[ci_low_pct] ), 100 )` |
 | Loyalty Discount Sales | `CALCULATE ( [Net Sales], Sales[retail_disc] > 0 )` |
+| Net Sales MoM % | `VAR Prior = CALCULATE ( [Net Sales], DATEADD ( 'Date'[date_key], -1, MONTH ) ) RETURN IF ( HASONEVALUE ( 'Date'[month_name] ), DIVIDE ( [Net Sales] - Prior, Prior ) )` |
 | Net Sales PQ | `CALCULATE ( [Net Sales], DATEADD ( 'Date'[date_key], -1, QUARTER ) )` |
 | Net Sales QoQ % | `DIVIDE ( [Net Sales] - [Net Sales PQ], [Net Sales PQ] )` |
 | Product Penetration % | `DIVIDE ( [Households], COUNTROWS ( ALL ( Household ) ) )` |
@@ -250,4 +251,4 @@ DIVIDE ( CALCULATE ( [Net Sales], Sales[retail_disc] > 0 ), [Net Sales] )
 | Top 10% Household Share | `VAR HH = FILTER ( ADDCOLUMNS ( VALUES ( Sales[household_id] ), "@s", [Net Sales] ), NOT ISBLANK ( [@s] ) ) VAR N = INT ( 0.1 * COUNTROWS ( HH ) ) VAR TopHH = TOPN ( N, HH, [@s], DESC ) RETURN DIVIDE ( SUMX ( TopHH, [@s] ), SUMX ( HH, [@s] ) )` |
 | WoW Growth % | `VAR Wk = MAX ( 'Date'[retail_week] ) VAR Prior = CALCULATE ( [Net Sales], REMOVEFILTERS ( 'Date' ), 'Date'[retail_week] = Wk - 1 ) RETURN IF ( HASONEVALUE ( 'Date'[retail_week] ), DIVIDE ( [Net Sales] - Prior, Prior ) )` |
 
-The model has **44 measures** in total.
+The model has **45 measures** in total.

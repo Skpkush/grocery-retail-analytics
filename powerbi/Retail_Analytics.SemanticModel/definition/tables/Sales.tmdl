@@ -84,6 +84,15 @@ table Sales
 		displayFolder: Time comparison
 		lineageTag: f137790a-22e4-40f8-899f-b5a9a9e4a03a
 
+	/// Net sales change against the previous calendar month. Used in the monthly table,
+	/// where a quarter-over-quarter figure would compare each month with the month three back.
+	measure 'Net Sales MoM %' =
+			VAR Prior = CALCULATE ( [Net Sales], DATEADD ( 'Date'[date_key], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( 'Date'[month_name] ), DIVIDE ( [Net Sales] - Prior, Prior ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Time comparison
+		lineageTag: 43cce52d-bd83-4470-805b-9954a6cc7c57
+
 	measure 'Baskets QoQ %' =
 			VAR Prior = CALCULATE ( [Baskets], DATEADD ( 'Date'[date_key], -1, QUARTER ) )
 			RETURN DIVIDE ( [Baskets] - Prior, Prior )

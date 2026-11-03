@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "lift",
   "position": {
-    "x": 860.38024087505664,
-    "y": 189.36598602991677,
+    "x": 860,
+    "y": 190,
     "z": 8000,
-    "height": 487.13713797551048,
-    "width": 399.31523141091145,
+    "height": 486,
+    "width": 400,
     "tabOrder": 8000
   },
   "visual": {

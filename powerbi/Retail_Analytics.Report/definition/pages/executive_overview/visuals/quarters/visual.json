@@ -42,7 +42,8 @@
                 }
               },
               "queryRef": "Date.month_name",
-              "nativeQueryRef": "month_name"
+              "nativeQueryRef": "month_name",
+              "displayName": "Month"
             },
             {
               "field": {
@@ -66,11 +67,12 @@
                       "Entity": "Sales"
                     }
                   },
-                  "Property": "Net Sales QoQ %"
+                  "Property": "Net Sales MoM %"
                 }
               },
-              "queryRef": "Sales.Net Sales QoQ %",
-              "nativeQueryRef": "Net Sales QoQ %"
+              "queryRef": "Sales.Net Sales MoM %",
+              "nativeQueryRef": "Net Sales MoM %",
+              "displayName": "vs prior month"
             },
             {
               "field": {
@@ -113,7 +115,7 @@
                     "Entity": "Date"
                   }
                 },
-                "Property": "quarter_name"
+                "Property": "month_name"
               }
             },
             "direction": "Ascending"
@@ -277,7 +279,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Table of net sales, growth, transactions and basket value by quarter.'"
+                  "Value": "'Table of net sales, change vs prior month, transactions and basket value by month and quarter.'"
                 }
               }
             }
@@ -297,7 +299,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Quarter detail'"
+                  "Value": "'Monthly detail'"
                 }
               }
             },
@@ -460,7 +462,7 @@
                 "Entity": "Sales"
               }
             },
-            "Property": "Net Sales QoQ %"
+            "Property": "Net Sales MoM %"
           }
         },
         "type": "Advanced"

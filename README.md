@@ -35,7 +35,7 @@ flowchart LR
     B --> C["dbt staging<br/>8 views"]
     C --> D["dbt intermediate<br/>4 ephemeral models"]
     D --> E["dbt marts<br/>star schema + analytics marts"]
-    E --> F["Power BI report<br/>44 DAX measures"]
+    E --> F["Power BI report<br/>45 DAX measures"]
     E --> G["Streamlit app"]
     E --> H["src/retail/stats.py<br/>DiD regression, CIs"]
     T["102 data tests<br/>6 unit tests"] -.->|"dbt build"| E
@@ -139,7 +139,7 @@ The report reads the dbt marts (exported to Parquet by `src/retail/export_powerb
 | **Customer Analytics:** RFM segments and spend by income and household type. | **Promotion Effectiveness:** discount share, coupon habitual rate and the campaign tests, with failed placebo checks highlighted. |
 
 The model is a star schema (Sales fact with Product, Household and Date dimensions) with
-44 DAX measures; the report layout is generated from code
+45 DAX measures; the report layout is generated from code
 ([`powerbi/tools/build_report.py`](powerbi/tools/build_report.py)).
 
 ---

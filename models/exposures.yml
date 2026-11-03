@@ -11,7 +11,7 @@ exposures:
     url: https://github.com/Skpkush/grocery-retail-analytics/tree/main/powerbi
     description: >
       Five-page Power BI report (Executive Overview, Customer Analytics, Product
-      Analytics, Promotion Effectiveness, Business Recommendations) with 44 DAX
+      Analytics, Promotion Effectiveness, Business Recommendations) with 45 DAX
       measures. src/retail/export_powerbi.py exports these models to Parquet;
       58 report values are reconciled against SQL in reports/reconciliation.md.
       The campaign test and promotion lift tables come from src/retail/stats.py,
