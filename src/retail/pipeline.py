@@ -1,4 +1,4 @@
-"""End-to-end pipeline: extract -> land -> transform -> quality gate -> outputs.
+"""End-to-end pipeline: extract -> land -> dbt build -> quality report -> outputs.
 
     python -m retail.pipeline
 """
@@ -23,27 +23,29 @@ from retail import (
 logger = logging.getLogger("retail")
 
 
-def build_warehouse() -> dict:
+def build_warehouse(target: str | None = None) -> dict:
     """Steps 1-4 only: enough for the app to start. The reports stay as committed."""
-    logger.info("1/6 extract")
-    ingest.download()
-    logger.info("2/6 land")
-    ingest.land()
-    logger.info("3/6 transform")
-    counts = transform.build()
-    for table, rows in counts.items():
+    if target != "ci":  # the ci target reads the committed sample instead
+        logger.info("1/6 extract")
+        ingest.download()
+        logger.info("2/6 land")
+        ingest.land()
+    logger.info("3/6 transform and test (dbt build)")
+    built = transform.build(target)
+    for table, rows in transform.table_counts().items():
         logger.info("  %-26s %12s rows", table, f"{rows:,}")
-    logger.info("4/6 quality gate")
-    con = transform.connect()
+    logger.info("4/6 quality report")
+    con = transform.connect(read_only=True)
     try:
-        report = quality.run_checks(con)
+        report = quality.build_report(con)
     finally:
         con.close()
     for check in report["checks"]:
         status = "PASS" if check["passed"] else ("FAIL" if check["severity"] == "error" else "WARN")
         logger.info("  %-4s %-48s %s", status, check["name"], f"{check['violations']:,}")
-    if report["blocking_failures"]:
-        raise SystemExit(f"Quality gate failed: {', '.join(report['blocking_failures'])}")
+    if not built or report["blocking_failures"]:
+        failures = ", ".join(report["blocking_failures"]) or "see the dbt output above"
+        raise SystemExit(f"dbt build failed: {failures}")
     return report
 
 

@@ -7,8 +7,8 @@ WITH weekly AS (
     STRING_AGG(DISTINCT d.holiday_name, ', ') AS holidays,
     SUM(s.sales_value) AS net_sales,
     COUNT(DISTINCT s.basket_id) AS baskets
-  FROM fct_sales s
-  JOIN dim_date d ON d.date_key = s.business_date
+  FROM {{ ref('fct_sales') }} s
+  JOIN {{ ref('dim_date') }} d ON d.date_key = s.business_date
   WHERE s.is_merch
   GROUP BY d.retail_week
 )

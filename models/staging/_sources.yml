@@ -5,8 +5,8 @@ version: 2
 # unchanged, in data/landing/. dbt-duckdb reads those files directly through
 # `external_location`, so there is no separate load step.
 #
-# CI points RETAIL_SOURCE_DIR at sample_data/ and RETAIL_SOURCE_EXT at csv, so the
-# same models run on the small committed sample.
+# The `ci` target (`dbt build --target ci`) reads the small committed sample in
+# sample_data/*.csv instead, so the same models run in GitHub Actions.
 #
 # Freshness: not configured. The dataset is a fixed snapshot of calendar year 2017,
 # so a freshness check would always fail and tell us nothing. On a live feed,
@@ -17,7 +17,7 @@ sources:
   - name: completejourney
     description: Raw Complete Journey tables, one file per table, as published.
     meta:
-      external_location: "{{ env_var('RETAIL_SOURCE_DIR', 'data/landing') }}/{name}.{{ env_var('RETAIL_SOURCE_EXT', 'parquet') }}"
+      external_location: "{{ 'sample_data/{name}.csv' if target.name == 'ci' else 'data/landing/{name}.parquet' }}"
     tables:
       - name: transactions
         description: >

@@ -51,7 +51,7 @@ def build() -> list[dict]:
         "caveat": "One year of data from a loyalty panel. RFM describes past behaviour and does not "
                   "predict who will leave. Segment boundaries are quintiles, not business thresholds.",
         "confidence": CONFIDENCE["descriptive"],
-        "sources": ["sql/analysis/06_rfm_segments.sql", "sql/analysis/07_customer_concentration.sql"],
+        "sources": ["analyses/06_rfm_segments.sql", "analyses/07_customer_concentration.sql"],
     })
 
     # 2. Coupons and existing buyers (proxy)
@@ -71,7 +71,7 @@ def build() -> list[dict]:
             "caveat": "A habitual buyer may still buy more because of the coupon, so this does not "
                       "measure lost incremental volume. It is a proxy for subsidised repeat purchases.",
             "confidence": CONFIDENCE["proxy"],
-            "sources": ["sql/analysis/10_coupon_incrementality.sql", "reports/stats_results.json"],
+            "sources": ["analyses/10_coupon_incrementality.sql", "reports/stats_results.json"],
         })
 
     # 3. Campaign effect not identifiable (not identified)
@@ -118,7 +118,7 @@ def build() -> list[dict]:
                       "trending, so these figures are an upper bound, not a causal lift. Sales are the "
                       "panel households' only.",
             "confidence": CONFIDENCE["association"],
-            "sources": ["sql/analysis/11_promotion_lift.sql", "reports/stats_results.json"],
+            "sources": ["analyses/11_promotion_lift.sql", "reports/stats_results.json"],
         })
 
     # 5. Basket affinity (descriptive)
@@ -135,7 +135,7 @@ def build() -> list[dict]:
         "caveat": "This shows the categories are bought together, not that one causes the other. "
                   "Results are at category level, not for individual products.",
         "confidence": CONFIDENCE["descriptive"],
-        "sources": ["sql/models/03_segments.sql", "sql/analysis/12_market_basket.sql"],
+        "sources": ["models/marts/analytics/mart_basket_affinity.sql", "analyses/12_market_basket.sql"],
     })
     return findings
 

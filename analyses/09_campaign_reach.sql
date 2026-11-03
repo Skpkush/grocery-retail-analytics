@@ -5,12 +5,12 @@ WITH per_campaign AS (
     c.campaign_id,
     c.campaign_type,
     c.duration_days,
-    (SELECT COUNT(*) FROM fct_campaign_targets t WHERE t.campaign_id = c.campaign_id) AS households_targeted,
-    (SELECT COUNT(DISTINCT r.household_id) FROM fct_coupon_redemptions r
+    (SELECT COUNT(*) FROM {{ ref('fct_campaign_targets') }} t WHERE t.campaign_id = c.campaign_id) AS households_targeted,
+    (SELECT COUNT(DISTINCT r.household_id) FROM {{ ref('fct_coupon_redemptions') }} r
       WHERE r.campaign_id = c.campaign_id) AS households_redeeming,
-    (SELECT COUNT(*) FROM fct_coupon_redemptions r WHERE r.campaign_id = c.campaign_id) AS redemptions,
-    (SELECT COUNT(DISTINCT coupon_upc) FROM dim_coupon k WHERE k.campaign_id = c.campaign_id) AS coupons_offered
-  FROM dim_campaign c
+    (SELECT COUNT(*) FROM {{ ref('fct_coupon_redemptions') }} r WHERE r.campaign_id = c.campaign_id) AS redemptions,
+    (SELECT COUNT(DISTINCT coupon_upc) FROM {{ ref('dim_coupon') }} k WHERE k.campaign_id = c.campaign_id) AS coupons_offered
+  FROM {{ ref('dim_campaign') }} c
 )
 SELECT
   campaign_type,

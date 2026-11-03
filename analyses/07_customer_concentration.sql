@@ -6,7 +6,7 @@ WITH ranked AS (
     SUM(sales_value) AS net_sales,
     ROW_NUMBER() OVER (ORDER BY SUM(sales_value) DESC) AS sales_rank,
     COUNT(*) OVER () AS total_households
-  FROM fct_sales
+  FROM {{ ref('fct_sales') }}
   WHERE is_merch
   GROUP BY household_id
 ),

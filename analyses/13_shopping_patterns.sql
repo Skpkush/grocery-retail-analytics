@@ -11,12 +11,12 @@ SELECT
   COUNT(*) AS baskets,
   ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS basket_share_pct,
   ROUND(AVG(b.sales_value), 2) AS avg_basket_value
-FROM fct_baskets b
+FROM {{ ref('fct_baskets') }} b
 JOIN (
   -- Store-local (US Eastern) time; source timestamps are UTC.
-  SELECT basket_id, MIN(local_timestamp) AS first_ts
-  FROM stg_transactions GROUP BY basket_id
+  SELECT basket_id, basket_started_at_local AS first_ts
+  FROM {{ ref('fct_baskets') }}
 ) t USING (basket_id)
-JOIN dim_date d ON d.date_key = b.business_date
+JOIN {{ ref('dim_date') }} d ON d.date_key = b.business_date
 GROUP BY ALL
 ORDER BY d.day_of_week, daypart;

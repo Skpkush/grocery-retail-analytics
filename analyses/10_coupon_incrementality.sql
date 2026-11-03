@@ -7,7 +7,7 @@ SELECT
   COUNT(*) AS redemptions,
   COUNT(*) FILTER (WHERE is_habitual) AS habitual_redemptions,
   ROUND(100.0 * COUNT(*) FILTER (WHERE is_habitual) / COUNT(*), 1) AS habitual_pct
-FROM mart_coupon_redemptions
+FROM {{ ref('mart_coupon_redemptions') }}
 WHERE is_scored
 GROUP BY ROLLUP (campaign_type)
 ORDER BY GROUPING(campaign_type), campaign_type;

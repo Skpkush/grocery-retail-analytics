@@ -73,14 +73,14 @@ def sql_values() -> dict[str, float]:
             SELECT g.rfm_segment, COUNT(*) AS households, SUM(g.annual_sales) AS sales,
                    SUM(g.annual_sales) / SUM(SUM(g.annual_sales)) OVER () AS share
             FROM (SELECT m.rfm_segment, m.household_id, SUM(s.sales_value) AS annual_sales
-                  FROM mart_household_segments m JOIN fct_sales s USING (household_id)
+                  FROM mart_rfm_segments m JOIN fct_sales s USING (household_id)
                   WHERE s.is_merch GROUP BY 1, 2) g GROUP BY 1""").rows:
         out[f"rfm_segment/{row['rfm_segment']}/Households"] = row["households"]
         out[f"rfm_segment/{row['rfm_segment']}/Segment Sales Share %"] = row["share"]
     for row in execute_readonly_query("""
             SELECT deal_segment, COUNT(*) AS households,
                    SUM(annual_sales) / SUM(SUM(annual_sales)) OVER () AS share
-            FROM mart_household_segments WHERE deal_segment IS NOT NULL GROUP BY 1""").rows:
+            FROM mart_rfm_segments WHERE deal_segment IS NOT NULL GROUP BY 1""").rows:
         out[f"deal_segment/{row['deal_segment']}/Households"] = row["households"]
         out[f"deal_segment/{row['deal_segment']}/Segment Sales Share %"] = row["share"]
     for row in execute_readonly_query("""

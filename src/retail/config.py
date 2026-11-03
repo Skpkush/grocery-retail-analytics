@@ -9,11 +9,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"  # downloaded source files, untouched
 LANDING_DIR = DATA_DIR / "landing"  # source files converted to Parquet, untyped
-WAREHOUSE_PATH = DATA_DIR / "warehouse.duckdb"
+# dbt writes the warehouse; the `ci` target builds a separate file from the sample.
+WAREHOUSE_PATH = Path(os.getenv("RETAIL_WAREHOUSE", DATA_DIR / "warehouse.duckdb"))
 QUALITY_REPORT_PATH = DATA_DIR / "quality_report.json"
 AUDIT_LOG_PATH = DATA_DIR / "audit_log.jsonl"
-MODELS_DIR = PROJECT_ROOT / "sql" / "models"
-ANALYSIS_DIR = PROJECT_ROOT / "sql" / "analysis"
+DBT_TARGET_DIR = PROJECT_ROOT / "target"  # dbt artifacts: manifest.json, run_results.json
+ANALYSIS_DIR = PROJECT_ROOT / "analyses"  # dbt analyses, rendered by retail.sqlfiles
 REPORTS_DIR = PROJECT_ROOT / "reports"
 POWERBI_DATA_DIR = PROJECT_ROOT / "powerbi" / "data"
 
@@ -38,7 +39,8 @@ CORE_TABLES = ("products", "demographics", "campaigns", "campaign_descriptions",
 MAX_SQL_ROWS = 500
 
 # Empty stand-ins for sources skipped with RETAIL_SKIP_TABLES (e.g. the 20.9M-row
-# promotions file on a small CI runner). Keeps every downstream model valid.
+# promotions file on a small machine). Landed as an empty Parquet file with the
+# right columns, so every dbt model stays valid.
 EMPTY_SCHEMAS: dict[str, str] = {
     "promotions": "NULL::VARCHAR AS product_id, NULL::VARCHAR AS store_id, "
                   "NULL::VARCHAR AS display_location, NULL::VARCHAR AS mailer_location, "

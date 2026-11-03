@@ -11,9 +11,9 @@ SELECT
     AS discount_rate_pct,
   ROUND(100.0 * SUM(CASE WHEN p.brand = 'Private' THEN s.sales_value END)
         / NULLIF(SUM(s.sales_value), 0), 1) AS private_label_share_pct
-FROM fct_sales s
-JOIN dim_date d ON d.date_key = s.business_date
-JOIN dim_product p ON p.product_id = s.product_id
+FROM {{ ref('fct_sales') }} s
+JOIN {{ ref('dim_date') }} d ON d.date_key = s.business_date
+JOIN {{ ref('dim_product') }} p ON p.product_id = s.product_id
 WHERE s.is_merch
 GROUP BY d.quarter_number, d.quarter_name
 ORDER BY d.quarter_number;

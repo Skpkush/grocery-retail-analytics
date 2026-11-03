@@ -1,24 +1,21 @@
-"""Transform: build the DuckDB warehouse from landed Parquet with the SQL models.
+"""Transform: build and test the DuckDB warehouse with dbt.
 
-Models in ``sql/models`` run in filename order (staging, then marts), the same
-layering a dbt project uses, without the extra dependency.
+The models, tests and analyses live in the dbt project at the repository root
+(models/, tests/dbt/, analyses/). This module runs ``dbt build`` so the pipeline
+and the Streamlit app can rebuild the warehouse in one call.
+
+    dbt build                 # same thing from the command line
 """
 
 from __future__ import annotations
 
 import logging
-import time
+import subprocess
+import sys
 
 import duckdb
 
-from retail.config import (
-    EMPTY_SCHEMAS,
-    LANDING_DIR,
-    MODELS_DIR,
-    SOURCE_FILES,
-    WAREHOUSE_PATH,
-    skipped_tables,
-)
+from retail.config import PROJECT_ROOT, WAREHOUSE_PATH
 
 logger = logging.getLogger("retail")
 
@@ -27,21 +24,24 @@ def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     return duckdb.connect(str(WAREHOUSE_PATH), read_only=read_only)
 
 
-def build(names: tuple[str, ...] | None = None) -> dict[str, int]:
-    WAREHOUSE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    con = connect()
+def _dbt(*args: str) -> int:
+    # A separate process, so dbt's DuckDB connection is closed when it finishes
+    # (DuckDB refuses a second connection with different settings in one process).
+    command = [sys.executable, "-c", "from dbt.cli.main import cli; cli()", *args]
+    # dbt resolves the project, profile and source paths from the project root.
+    return subprocess.run(command, cwd=PROJECT_ROOT, check=False).returncode
+
+
+def build(target: str | None = None) -> bool:
+    """Run `dbt deps` and `dbt build`. Returns True when no model or error-level test failed."""
+    if not (PROJECT_ROOT / "dbt_packages").exists() and _dbt("deps", "--quiet") != 0:
+        raise RuntimeError("dbt deps failed.")
+    return _dbt("build", *(["--target", target] if target else [])) == 0
+
+
+def table_counts() -> dict[str, int]:
+    con = connect(read_only=True)
     try:
-        for name in names or tuple(SOURCE_FILES):
-            if name in skipped_tables():
-                con.execute(f"CREATE OR REPLACE VIEW landing_{name} AS "
-                            f"SELECT {EMPTY_SCHEMAS[name]} WHERE FALSE")
-                continue
-            path = (LANDING_DIR / f"{name}.parquet").as_posix()
-            con.execute(f"CREATE OR REPLACE VIEW landing_{name} AS SELECT * FROM read_parquet('{path}')")
-        for model in sorted(MODELS_DIR.glob("*.sql")):
-            started = time.perf_counter()
-            con.execute(model.read_text(encoding="utf-8"))
-            logger.info("model %-16s %.1fs", model.name, time.perf_counter() - started)
         tables = con.execute(
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_type = 'BASE TABLE' ORDER BY table_name"

@@ -29,7 +29,7 @@ EXPORTS = {
                      "COALESCE(s.rfm_segment, 'No merchandise purchases') AS rfm_segment, "
                      "COALESCE(s.deal_segment, 'No merchandise purchases') AS deal_segment, "
                      "s.recency_days, s.r_score, s.f_score, s.m_score "
-                     "FROM dim_household h LEFT JOIN mart_household_segments s USING (household_id)",
+                     "FROM dim_household h LEFT JOIN mart_rfm_segments s USING (household_id)",
     "dim_date": "SELECT date_key, retail_week, week_start, month_number, month_name, "
                 "quarter_number, quarter_name, day_of_week, day_name, holiday_name FROM dim_date",
     "fct_coupon_redemptions": "SELECT redemption_id, household_id, coupon_upc, campaign_id, campaign_type, "

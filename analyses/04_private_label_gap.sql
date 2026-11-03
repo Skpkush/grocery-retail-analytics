@@ -10,8 +10,8 @@ WITH cat AS (
       / NULLIF(SUM(CASE WHEN p.brand = 'Private' THEN s.units END), 0) AS private_unit_price,
     SUM(CASE WHEN p.brand = 'National' THEN s.sales_value END)
       / NULLIF(SUM(CASE WHEN p.brand = 'National' THEN s.units END), 0) AS national_unit_price
-  FROM fct_sales s
-  JOIN dim_product p ON p.product_id = s.product_id
+  FROM {{ ref('fct_sales') }} s
+  JOIN {{ ref('dim_product') }} p ON p.product_id = s.product_id
   WHERE s.is_merch AND s.units > 0 AND p.product_category <> 'UNCATEGORIZED'
   GROUP BY p.department, p.product_category
 )

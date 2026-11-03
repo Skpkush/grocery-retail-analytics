@@ -3,8 +3,10 @@
 1. Campaign impact: difference-in-differences (DiD) on weekly household spend.
    Treated = households targeted by a campaign; control = households never
    targeted by any campaign. Pre = 8 weeks before launch; post = the campaign
-   window. OLS with household-clustered standard errors. A placebo test on the
-   8 weeks before the pre-period checks the parallel-trends assumption.
+   window. The panel is built in dbt (fct_campaign_spend_panel); this module
+   fits OLS with campaign fixed effects and household-clustered standard errors.
+   A placebo test on the 8 weeks before the pre-period checks the
+   parallel-trends assumption.
 2. Coupon habitual share: Wilson 95% interval on the proportion of redemptions
    by households that already bought the product.
 3. Promotion lift: bootstrap 95% interval on the sales lift, resampling
@@ -22,59 +24,18 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 
+from retail import sqlfiles
 from retail.config import ANALYSIS_DIR, REPORTS_DIR
 from retail.transform import connect
 
 STATS_PATH = REPORTS_DIR / "stats_results.json"
-PRE_WEEKS = 8
-
-# Weekly merchandise spend per household for one window, zero-filled.
-_WINDOW_SPEND = """
-WITH hh AS (SELECT household_id FROM dim_household),
-spend AS (
-  SELECT household_id, SUM(sales_value) AS sales
-  FROM fct_sales
-  WHERE is_merch AND business_date BETWEEN ? AND ?
-  GROUP BY household_id
-)
-SELECT hh.household_id, COALESCE(spend.sales, 0) / ? AS weekly_spend
-FROM hh LEFT JOIN spend USING (household_id)
-"""
-
-
-def _window(con, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
-    weeks = ((end - start).days + 1) / 7
-    return con.execute(_WINDOW_SPEND, [start.date(), end.date(), weeks]).df()
 
 
 def campaign_panel(con) -> pd.DataFrame:
-    """Stacked household x campaign x period panel for the DiD."""
-    campaigns = con.execute("SELECT * FROM dim_campaign").df()
-    targets = con.execute("SELECT campaign_id, household_id FROM fct_campaign_targets").df()
-    never = set(con.execute(
-        "SELECT household_id FROM dim_household WHERE campaigns_received = 0").df().household_id)
-    data_start, data_end = pd.Timestamp("2017-01-01"), pd.Timestamp("2017-12-31")
-    frames = []
-    for c in campaigns.itertuples():
-        start, end = pd.Timestamp(c.start_date), min(pd.Timestamp(c.end_date), data_end)
-        placebo_start = start - pd.Timedelta(weeks=2 * PRE_WEEKS)
-        if placebo_start < data_start or start > data_end:
-            continue  # not enough history before launch inside the data
-        treated = set(targets.loc[targets.campaign_id == c.campaign_id, "household_id"])
-        windows = {
-            "placebo_pre": (placebo_start, start - pd.Timedelta(weeks=PRE_WEEKS, days=1)),
-            "pre": (start - pd.Timedelta(weeks=PRE_WEEKS), start - pd.Timedelta(days=1)),
-            "post": (start, end),
-        }
-        for period, (a, b) in windows.items():
-            w = _window(con, a, b)
-            w = w[w.household_id.isin(treated | never)].copy()
-            w["treated"] = w.household_id.isin(treated).astype(int)
-            w["period"] = period
-            w["campaign_id"] = c.campaign_id
-            w["campaign_type"] = c.campaign_type
-            frames.append(w)
-    return pd.concat(frames, ignore_index=True)
+    """Household x campaign x period panel, built in dbt (fct_campaign_spend_panel)."""
+    return con.execute(
+        "SELECT campaign_id, campaign_type, household_id, treated, period, weekly_spend "
+        "FROM fct_campaign_spend_panel ORDER BY campaign_id, period, household_id").df()
 
 
 def _did(panel: pd.DataFrame, before: str, after: str) -> dict:
@@ -120,7 +81,7 @@ def wilson(successes: int, n: int, z: float = 1.96) -> list[float]:
 
 
 def coupon_habitual(con) -> dict:
-    df = con.execute((ANALYSIS_DIR / "10_coupon_incrementality.sql").read_text()).df()
+    df = con.execute(sqlfiles.read(ANALYSIS_DIR / "10_coupon_incrementality.sql")).df()
     out = {}
     for row in df.itertuples():
         key = row.campaign_type if isinstance(row.campaign_type, str) else "All"
@@ -134,10 +95,13 @@ def coupon_habitual(con) -> dict:
 
 def promotion_lift_ci(con, resamples: int = 300, seed: int = 7) -> dict:
     """Bootstrap the pair-level lift ratio (sum promoted / sum baseline)."""
-    sql = (ANALYSIS_DIR / "11_promotion_lift.sql").read_text()
+    sql = sqlfiles.read(ANALYSIS_DIR / "11_promotion_lift.sql")
     # Reuse the analysis CTEs, stopping before the final aggregation.
+    # Fixed row order: the bootstrap draws row positions, so an unordered result
+    # would give a slightly different interval on every run.
     pairs_sql = sql.split("SELECT\n  promo_state,\n  COUNT(*)")[0] + (
-        "SELECT promo_state, avg_sales, baseline_sales FROM paired")
+        "SELECT promo_state, avg_sales, baseline_sales FROM paired "
+        "ORDER BY promo_state, product_id, store_id")
     pairs = con.execute(pairs_sql).df()
     if pairs.empty:  # promotions skipped (RETAIL_SKIP_TABLES)
         return {}

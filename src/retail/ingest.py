@@ -17,9 +17,17 @@ import logging
 import urllib.request
 from datetime import UTC, datetime
 
+import duckdb
 import pyreadr
 
-from retail.config import LANDING_DIR, RAW_DIR, SOURCE_BASE_URL, SOURCE_FILES, skipped_tables
+from retail.config import (
+    EMPTY_SCHEMAS,
+    LANDING_DIR,
+    RAW_DIR,
+    SOURCE_BASE_URL,
+    SOURCE_FILES,
+    skipped_tables,
+)
 
 logger = logging.getLogger("retail")
 MANIFEST_PATH = RAW_DIR / "manifest.json"
@@ -67,13 +75,19 @@ def land(names: tuple[str, ...] | None = None) -> dict[str, int]:
     LANDING_DIR.mkdir(parents=True, exist_ok=True)
     counts = {}
     for name in names or tuple(SOURCE_FILES):
+        target = LANDING_DIR / f"{name}.parquet"
         if name in skipped_tables():
-            logger.info("skipped %s (RETAIL_SKIP_TABLES)", name)
+            # An empty file with the right columns keeps every dbt model valid.
+            duckdb.sql(f"SELECT {EMPTY_SCHEMAS[name]} WHERE FALSE").write_parquet(str(target))
+            logger.info("skipped %s (RETAIL_SKIP_TABLES): landed an empty file", name)
             continue
         source = RAW_DIR / SOURCE_FILES[name]
+        if target.exists() and target.stat().st_mtime >= source.stat().st_mtime:
+            logger.info("landed %-22s (up to date)", name)
+            continue
         result = pyreadr.read_r(str(source))
         frame = next(iter(result.values()))
-        frame.to_parquet(LANDING_DIR / f"{name}.parquet", index=False)
+        frame.to_parquet(target, index=False)
         counts[name] = len(frame)
         logger.info("landed %-22s %10s rows", name, f"{len(frame):,}")
     return counts

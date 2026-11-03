@@ -5,13 +5,13 @@
 -- Partial weeks 1 and 53 are excluded; a week with no sale counts as $0.
 WITH weekly_sales AS (
   SELECT s.product_id, s.store_id, d.retail_week AS week, SUM(s.sales_value) AS sales
-  FROM fct_sales s
-  JOIN dim_date d ON d.date_key = s.business_date
+  FROM {{ ref('fct_sales') }} s
+  JOIN {{ ref('dim_date') }} d ON d.date_key = s.business_date
   WHERE s.is_merch AND d.retail_week BETWEEN 2 AND 52
   GROUP BY ALL
 ),
 pairs AS (  -- product x store pairs that were promoted at least once and sold at least once
-  SELECT DISTINCT product_id, store_id FROM fct_promotions
+  SELECT DISTINCT product_id, store_id FROM {{ ref('fct_promotions') }}
   INTERSECT
   SELECT DISTINCT product_id, store_id FROM weekly_sales
 ),
@@ -31,7 +31,7 @@ panel AS (
     END AS promo_state,
     COALESCE(ws.sales, 0) AS sales
   FROM grid g
-  LEFT JOIN fct_promotions pr USING (product_id, store_id, week)
+  LEFT JOIN {{ ref('fct_promotions') }} pr USING (product_id, store_id, week)
   LEFT JOIN weekly_sales ws USING (product_id, store_id, week)
 ),
 pair_state AS (
@@ -40,7 +40,7 @@ pair_state AS (
   GROUP BY ALL
 ),
 paired AS (
-  SELECT p.promo_state, p.avg_sales, b.avg_sales AS baseline_sales, p.weeks
+  SELECT p.product_id, p.store_id, p.promo_state, p.avg_sales, b.avg_sales AS baseline_sales, p.weeks
   FROM pair_state p
   JOIN pair_state b
     ON b.product_id = p.product_id AND b.store_id = p.store_id AND b.promo_state = 'Not promoted'
