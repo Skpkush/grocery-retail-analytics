@@ -1,5 +1,6 @@
 # Generated data (rebuilt by `python -m retail.pipeline`)
-data/
+data/*
+!data/.gitkeep
 powerbi/data/
 
 # Python
