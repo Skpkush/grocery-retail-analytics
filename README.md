@@ -195,9 +195,6 @@ reports/            generated findings, insights and reconciliation
 dbt_project.yml  packages.yml  profiles.yml (no secrets: DuckDB is a local file)
 ```
 
-See [`LEARNING.md`](LEARNING.md) for how the dbt project works, written for someone
-learning dbt.
-
 ---
 
 ## Limitations
